@@ -1,4 +1,4 @@
-from net.tcp.client import Client
+from net.tcp.client import Client as TcpClient
 from io.buffered_reader import BufferedReader
 
 class RedisError(Error):
@@ -9,11 +9,11 @@ class Client:
 
     """
 
-    _client: Client
+    _client: TcpClient
     _buffered_reader: BufferedReader
 
     func __init__(self):
-        self._client = Client()
+        self._client = TcpClient()
         self._buffered_reader = None
 
     func connect(self, host: string = "127.0.0.1", port: u32 = 6379):
