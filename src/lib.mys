@@ -1,5 +1,5 @@
-from net.tcp.client import Client as TcpClient
 from io.buffered_reader import BufferedReader
+from net.tcp.client import Client as TcpClient
 
 class RedisError(Error):
     message: string
