@@ -9,14 +9,26 @@ class Message:
     pass
 
 class SubscribeMessage(Message):
+    """A subscribe reply messasge.
+
+    """
+
     channel: string
     number_of_subscriptions: i64
 
 class UnsubscribeMessage(Message):
+    """An unsubscribe reply messasge.
+
+    """
+
     channel: string
     number_of_subscriptions: i64
 
 class PublishMessage(Message):
+    """A published messasge.
+
+    """
+
     channel: string
     payload: bytes
 
