@@ -4,6 +4,22 @@ from io.buffered_reader import BufferedReader
 class RedisError(Error):
     message: string
 
+@trait
+class Message:
+    pass
+
+class SubscribeMessage(Message):
+    channel: string
+    number_of_subscriptions: i64
+
+class UnsubscribeMessage(Message):
+    channel: string
+    number_of_subscriptions: i64
+
+class PublishMessage(Message):
+    channel: string
+    payload: bytes
+
 class Client:
     """A Redis client.
 
@@ -90,19 +106,90 @@ class Client:
 
         return f64(self.get_string(key))
 
+    func publish(self, channel: string, message: bytes) -> i64:
+        """Publish given message on given channel. Returns the number of
+        clients that received the message.
+
+        """
+
+        reply = self._execute([b"PUBLISH", channel.to_utf8(), message])
+
+        return i64(string(reply[0]))
+
+    func subscribe(self, channel: string):
+        """Subscribe to given channel. May be called from any fiber, even
+        if another thread is waiting for a message.
+
+        """
+
+        self._write_request([b"SUBSCRIBE", channel.to_utf8()])
+
+    func unsubscribe(self, channel: string):
+        """Unsubscribe from given channel. May be called from any fiber, even
+        if another thread is waiting for a message.
+
+        """
+
+        self._write_request([b"UNSUBSCRIBE", channel.to_utf8()])
+
+    func get_message(self) -> Message:
+        """Get the next message. Blocks until a message is received.
+
+        """
+
+        line = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+        if len(line) == 0:
+            raise RedisError("No data")
+
+        if line[0] != u8('*'):
+            raise RedisError("Not an array.")
+
+        if i64(string(line[1:])) != 3:
+            raise RedisError("Not three elements.")
+
+        self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+        kind = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+        match kind:
+            case b"subscribe":
+                self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+                channel = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+                count = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+                return SubscribeMessage(string(channel), i64(string(count[1:])))
+            case b"unsubscribe":
+                self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+                channel = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+                count = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+                return UnsubscribeMessage(string(channel), i64(string(count[1:])))
+            case b"message":
+                self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+                channel = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+                self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+                payload = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+                return PublishMessage(string(channel), payload)
+            case _:
+                raise RedisError("Invalid message kind.")
+
     func _read_reply_string(self, length: u64) -> [bytes]:
         value = self._buffered_reader.read(length)
         self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
 
         return [value]
 
-    func _execute(self, command: [bytes]) -> [bytes]:
+    func _write_request(self, command: [bytes]):
         self._client.write(f"*{len(command)}\r\n".to_utf8())
 
         for item in command:
             self._client.write(f"${len(item)}\r\n".to_utf8())
             self._client.write(item)
             self._client.write(b"\r\n")
+
+    func _execute(self, command: [bytes]) -> [bytes]:
+        self._write_request(command)
 
         line = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
 
@@ -113,6 +200,8 @@ class Client:
             case u8('$'):
                 return self._read_reply_string(u64(string(line[1:])))
             case u8('+'):
+                return [line[1:]]
+            case u8(':'):
                 return [line[1:]]
             case _:
                 raise RedisError(f"Unsupported response {string(line)}")

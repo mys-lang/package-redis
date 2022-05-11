@@ -1,0 +1,48 @@
+from fiber import sleep
+from fiber import Fiber
+from redis import Client
+from redis import PublishMessage
+from redis import UnsubscribeMessage
+
+class Subscriber(Fiber):
+    client: Client
+
+    func run(self):
+        self.client.connect()
+        self.client.subscribe("my_channel")
+
+        while True:
+            message = self.client.get_message()
+
+            match message:
+                case PublishMessage() as publish_message:
+                    payload = string(publish_message.payload)
+                    channel = publish_message.channel
+                    print(f"Subscriber got '{payload}' on channel '{channel}'.")
+                case UnsubscribeMessage():
+                    print(message)
+                    break
+                case _:
+                    print(message)
+
+func publish():
+    client = Client()
+    client.connect()
+
+    for i in range(10):
+        message = f"message {i}"
+        count = client.publish("my_channel", message.to_utf8())
+        print(f"Published '{message}' to {count} subscribers.")
+        sleep(0.5)
+
+    client.disconnect()
+
+func main():
+    client = Client()
+    subscriber = Subscriber(client)
+    subscriber.start()
+    sleep(0.5)
+    publish()
+    client.unsubscribe("my_channel")
+    subscriber.join()
+    client.disconnect()
