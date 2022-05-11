@@ -1,8 +1,8 @@
 from random.pseudo import random
-from redis import Redis
+from redis import Client
 
 func main():
-    client = Redis()
+    client = Client()
     client.connect()
 
     client.set_string("string", "Hello Redis!")
