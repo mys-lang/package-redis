@@ -1,7 +1,9 @@
 About
 =====
 
-`Redis`_ package in the `Mys programming language`_.
+A `Redis`_ client in the `Mys programming language`_.
+
+Project: https://github.com/mys-lang/package-redis
 
 API
 ===
