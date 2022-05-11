@@ -118,7 +118,7 @@ class Client:
 
     func subscribe(self, channel: string):
         """Subscribe to given channel. May be called from any fiber, even
-        if another thread is waiting for a message.
+        if another fiber is waiting for a message.
 
         """
 
@@ -126,7 +126,7 @@ class Client:
 
     func unsubscribe(self, channel: string):
         """Unsubscribe from given channel. May be called from any fiber, even
-        if another thread is waiting for a message.
+        if another fiber is waiting for a message.
 
         """
 
