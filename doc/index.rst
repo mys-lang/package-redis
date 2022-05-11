@@ -48,7 +48,7 @@ Subscribe
        client.subscribe("my_channel")
 
        while True:
-           print(self.client.get_message())
+           print(client.get_message())
 
 API
 ===
