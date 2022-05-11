@@ -1,0 +1,74 @@
+from net.tcp.client import Client
+from io.buffered_reader import BufferedReader
+
+class RedisError(Error):
+    message: string
+
+class Redis:
+    _client: Client
+    _buffered_reader: BufferedReader
+
+    func __init__(self):
+        self._client = Client()
+        self._buffered_reader = None
+
+    func connect(self, host: string = "127.0.0.1", port: u32 = 6379):
+        self._client.connect(host, port)
+        self._buffered_reader = BufferedReader(self._client)
+
+    func disconnect(self):
+        self._client.disconnect()
+
+    func set_bytes(self, key: string, value: bytes):
+        reply = self._execute([b"SET", key.to_utf8(), value])
+
+        if reply[0] != b"OK":
+            raise RedisError("Set failed!")
+
+    func get_bytes(self, key: string) -> bytes:
+        return self._execute([b"GET", key.to_utf8()])[0]
+
+    func set_string(self, key: string, value: string):
+        self.set_bytes(key, value.to_utf8())
+
+    func get_string(self, key: string) -> string:
+        return string(self.get_bytes(key))
+
+    func set_i64(self, key: string, value: i64):
+        self.set_string(key, f"{value}")
+
+    func get_i64(self, key: string) -> i64:
+        return i64(self.get_string(key))
+
+    func set_f64(self, key: string, value: f64):
+        self.set_string(key, f"{value}")
+
+    func get_f64(self, key: string) -> f64:
+        return f64(self.get_string(key))
+
+    func _read_reply_string(self, length: u64) -> [bytes]:
+        value = self._buffered_reader.read(length)
+        self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+        return [value]
+
+    func _execute(self, command: [bytes]) -> [bytes]:
+        self._client.write(f"*{len(command)}\r\n".to_utf8())
+
+        for item in command:
+            self._client.write(f"${len(item)}\r\n".to_utf8())
+            self._client.write(item)
+            self._client.write(b"\r\n")
+
+        line = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+        if len(line) == 0:
+            raise RedisError("No data")
+
+        match line[0]:
+            case u8('$'):
+                return self._read_reply_string(u64(string(line[1:])))
+            case u8('+'):
+                return [line[1:]]
+            case _:
+                raise RedisError(f"Unsupported response {string(line)}")
