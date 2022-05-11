@@ -32,7 +32,7 @@ Publish
    func main():
        client = Client()
        client.connect()
-       client.publish("my_channel", "my_payload")
+       client.publish("my_channel", b"my_payload")
        client.disconnect()
 
 Subscribe
