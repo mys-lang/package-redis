@@ -41,6 +41,9 @@ Subscribe
 .. code-block:: mys
 
    from redis import Client
+   from redis import PublishMessage
+   from redis import SubscribeMessage
+   from redis import UnsubscribeMessage
 
    func main():
        client = Client()
