@@ -48,7 +48,13 @@ Subscribe
        client.subscribe("my_channel")
 
        while True:
-           print(client.get_message())
+           match client.get_message():
+                case PublishMessage() as publish_message:
+                    print(publish_message)
+                case SubscribeMessage() as subscribe_message:
+                    print(subscribe_message)
+                case UnsubscribeMessage() as unsubscribe_message:
+                    print(unsubscribe_message)
 
 API
 ===
