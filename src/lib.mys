@@ -6,7 +6,9 @@ class RedisError(Error):
 
 @trait
 class Message:
-    pass
+    """A received Pub/Sub message.
+
+    """
 
 class SubscribeMessage(Message):
     """A subscribe reply messasge.
