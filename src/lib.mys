@@ -66,41 +66,35 @@ class Client:
 
         """
 
-        reply = self._execute([b"AUTH", password.to_utf8()])
-
-        if reply[0] != b"OK":
-            raise RedisError("Auth failed!")
+        self._call_ok_reply([b"AUTH", password.to_utf8()])
 
     func set(self, key: string, value: bytes):
         """Set given value for given key.
 
         """
 
-        reply = self._execute([b"SET", key.to_utf8(), value])
-
-        if reply[0] != b"OK":
-            raise RedisError("Set failed!")
+        self._call_ok_reply([b"SET", key.to_utf8(), value])
 
     func get(self, key: string) -> bytes:
         """Get the value for given key.
 
         """
 
-        return self._execute([b"GET", key.to_utf8()])[0]
+        return self._call_string_reply([b"GET", key.to_utf8()])
 
     func getdel(self, key: string) -> bytes:
         """Get the value for given key and then delete it.
 
         """
 
-        return self._execute([b"GETDEL", key.to_utf8()])[0]
+        return self._call_string_reply([b"GETDEL", key.to_utf8()])
 
     func append(self, key: string, value: bytes) -> i64:
         """Append given value for given key.
 
         """
 
-        return i64(string(self._execute([b"APPEND", key.to_utf8(), value])[0]))
+        return self._call_integer_reply([b"APPEND", key.to_utf8(), value])
 
     func incr(self, key: string) -> i64:
         """Increment the value for given key. Returns the value after the
@@ -108,7 +102,7 @@ class Client:
 
         """
 
-        return i64(string(self._execute([b"INCR", key.to_utf8()])[0]))
+        return self._call_integer_reply([b"INCR", key.to_utf8()])
 
     func decr(self, key: string) -> i64:
         """Decrement the value for given key. Returns the value after the
@@ -116,46 +110,42 @@ class Client:
 
         """
 
-        return i64(string(self._execute([b"DECR", key.to_utf8()])[0]))
+        return self._call_integer_reply([b"DECR", key.to_utf8()])
 
     func strlen(self, key: string) -> i64:
         """Get the value length for given key.
 
         """
 
-        return i64(string(self._execute([b"STRLEN", key.to_utf8()])[0]))
+        return self._call_integer_reply([b"STRLEN", key.to_utf8()])
 
     func lpush(self, key: string, value: bytes) -> i64:
         """Prepend given value for given key.
 
         """
 
-        reply = self._execute([b"LPUSH", key.to_utf8(), value])
-
-        return i64(string(reply[0]))
+        return self._call_integer_reply([b"LPUSH", key.to_utf8(), value])
 
     func lpop(self, key: string) -> bytes:
         """Pop the first value for given key.
 
         """
 
-        return self._execute([b"LPOP", key.to_utf8()])[0]
+        return self._call_string_reply([b"LPOP", key.to_utf8()])
 
     func rpush(self, key: string, value: bytes) -> i64:
         """Append given value for given key.
 
         """
 
-        reply = self._execute([b"RPUSH", key.to_utf8(), value])
-
-        return i64(string(reply[0]))
+        return self._call_integer_reply([b"RPUSH", key.to_utf8(), value])
 
     func rpop(self, key: string) -> bytes:
         """Pop the last value for given key.
 
         """
 
-        return self._execute([b"RPOP", key.to_utf8()])[0]
+        return self._call_string_reply([b"RPOP", key.to_utf8()])
 
     func publish(self, channel: string, message: bytes) -> i64:
         """Publish given message on given channel. Returns the number of
@@ -163,9 +153,7 @@ class Client:
 
         """
 
-        reply = self._execute([b"PUBLISH", channel.to_utf8(), message])
-
-        return i64(string(reply[0]))
+        return self._call_integer_reply([b"PUBLISH", channel.to_utf8(), message])
 
     func subscribe(self, channel: string):
         """Subscribe to given channel. May be called from any fiber, even
@@ -209,6 +197,31 @@ class Client:
                 return PublishMessage(channel, payload)
             case _ as kind:
                 raise RedisError(f"Invalid message kind '{kind}'.")
+
+    func _call_integer_reply(self, command: [bytes]) -> i64:
+        self._write_request(command)
+
+        return self._read_reply_integer()
+
+    func _call_string_reply(self, command: [bytes]) -> bytes:
+        self._write_request(command)
+
+        return self._read_reply_string()
+
+    func _call_ok_reply(self, command: [bytes]):
+        self._write_request(command)
+        self._read_reply_ok()
+
+    func _read_reply_ok(self):
+        kind = self._buffered_reader.read(1)
+
+        if kind != b"+":
+            raise RedisError("Not a response.")
+
+        value = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+        if value != b"OK":
+            raise RedisError("Not OK.")
 
     func _read_reply_string(self) -> bytes:
         kind = self._buffered_reader.read(1)
@@ -258,23 +271,3 @@ class Client:
             request += b"\r\n"
 
         self._client.write(request)
-
-    func _execute(self, command: [bytes]) -> [bytes]:
-        self._write_request(command)
-
-        line = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
-
-        if len(line) == 0:
-            raise RedisError("No data")
-
-        match line[0]:
-            case u8('$'):
-                return [self._read_reply_string_payload(u64(string(line[1:])))]
-            case u8('+'):
-                return [line[1:]]
-            case u8('-'):
-                raise RedisError(string(line[1:]).partition(" ")[2])
-            case u8(':'):
-                return [line[1:]]
-            case _:
-                raise RedisError(f"Unsupported response {string(line)}")
