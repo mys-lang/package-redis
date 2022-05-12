@@ -88,6 +88,43 @@ class Client:
 
         return self._execute([b"GET", key.to_utf8()])[0]
 
+    func getdel(self, key: string) -> bytes:
+        """Get the value for given key and then delete it.
+
+        """
+
+        return self._execute([b"GETDEL", key.to_utf8()])[0]
+
+    func strlen(self, key: string) -> i64:
+        """Get the value length for given key.
+
+        """
+
+        return i64(string(self._execute([b"STRLEN", key.to_utf8()])[0]))
+
+    func append(self, key: string, value: bytes) -> i64:
+        """Append given value for given key.
+
+        """
+
+        return i64(string(self._execute([b"APPEND", key.to_utf8(), value])[0]))
+
+    func incr(self, key: string) -> i64:
+        """Increment the value for given key. Returns the value after the
+        increment.
+
+        """
+
+        return i64(string(self._execute([b"INCR", key.to_utf8()])[0]))
+
+    func decr(self, key: string) -> i64:
+        """Decrement the value for given key. Returns the value after the
+        decrement.
+
+        """
+
+        return i64(string(self._execute([b"DECR", key.to_utf8()])[0]))
+
     func lpush(self, key: string, value: bytes) -> i64:
         """Prepend given value for given key.
 

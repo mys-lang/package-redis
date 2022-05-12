@@ -3,8 +3,17 @@ from redis import Client
 func main():
     client = Client()
     client.connect()
-
     client.set("foo", b"\x00\x01\x02")
-    print(client.get("foo"))
-
+    print("Value:", client.get("foo"))
+    print("Length:", client.strlen("foo"))
+    print("Append:", client.append("foo", b"\x03\x04"))
+    print("Value:", client.get("foo"))
+    print("Value:", client.getdel("foo"))
+    print("Append:", client.append("foo", b"\x00"))
+    print("Value:", client.get("foo"))
+    client.set("count", b"0")
+    print("Incr:", client.incr("count"))
+    print("Incr:", client.incr("count"))
+    print("Incr:", client.incr("count"))
+    print("Decr:", client.decr("count"))
     client.disconnect()
