@@ -87,19 +87,35 @@ class Client:
         return self._execute([b"GET", key.to_utf8()])[0]
 
     func lpush(self, key: string, value: bytes) -> i64:
+        """Prepend given value for given key.
+
+        """
+
         reply = self._execute([b"LPUSH", key.to_utf8(), value])
 
         return i64(string(reply[0]))
 
     func lpop(self, key: string) -> bytes:
+        """Pop the first value for given key.
+
+        """
+
         return self._execute([b"LPOP", key.to_utf8()])[0]
 
     func rpush(self, key: string, value: bytes) -> i64:
+        """Append given value for given key.
+
+        """
+
         reply = self._execute([b"RPUSH", key.to_utf8(), value])
 
         return i64(string(reply[0]))
 
     func rpop(self, key: string) -> bytes:
+        """Pop the last value for given key.
+
+        """
+
         return self._execute([b"RPOP", key.to_utf8()])[0]
 
     func publish(self, channel: string, message: bytes) -> i64:
