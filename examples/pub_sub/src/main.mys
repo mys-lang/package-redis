@@ -10,6 +10,7 @@ class Subscriber(Fiber):
     func run(self):
         self.client.connect()
         self.client.subscribe("my_channel")
+        self.client.psubscribe("my_*")
 
         while True:
             message = self.client.get_message()
@@ -44,5 +45,6 @@ func main():
     sleep(0.5)
     publish()
     client.unsubscribe("my_channel")
+    client.punsubscribe("my_*")
     subscriber.join()
     client.disconnect()

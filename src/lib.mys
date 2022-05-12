@@ -171,15 +171,44 @@ class Client:
 
         self._write_request([b"UNSUBSCRIBE", channel.to_utf8()])
 
+    func psubscribe(self, pattern: string):
+        """Subscribe to given pattern. May be called from any fiber, even
+        if another fiber is waiting for a message.
+
+        """
+
+        self._write_request([b"PSUBSCRIBE", pattern.to_utf8()])
+
+    func punsubscribe(self, pattern: string):
+        """Unsubscribe from given pattern. May be called from any fiber, even
+        if another fiber is waiting for a message.
+
+        """
+
+        self._write_request([b"PUNSUBSCRIBE", pattern.to_utf8()])
+
     func get_message(self) -> Message:
         """Get the next message. Blocks until a message is received.
 
         """
 
-        if self._read_reply_array_length() != 3:
-            raise RedisError("Not an array with three elements.")
+        length = self._read_reply_array_length()
+
+        if length < 3:
+            raise RedisError("Array too short.")
 
         match self._read_reply_string():
+            case b"message":
+                channel = string(self._read_reply_string())
+                payload = self._read_reply_string()
+
+                return PublishMessage(channel, payload)
+            case b"pmessage":
+                self._read_reply_string()
+                channel = string(self._read_reply_string())
+                payload = self._read_reply_string()
+
+                return PublishMessage(channel, payload)
             case b"subscribe":
                 channel = string(self._read_reply_string())
                 count = self._read_reply_integer()
@@ -190,11 +219,16 @@ class Client:
                 count = self._read_reply_integer()
 
                 return UnsubscribeMessage(channel, count)
-            case b"message":
+            case b"psubscribe":
                 channel = string(self._read_reply_string())
-                payload = self._read_reply_string()
+                count = self._read_reply_integer()
 
-                return PublishMessage(channel, payload)
+                return SubscribeMessage(channel, count)
+            case b"punsubscribe":
+                channel = string(self._read_reply_string())
+                count = self._read_reply_integer()
+
+                return UnsubscribeMessage(channel, count)
             case _ as kind:
                 raise RedisError(f"Invalid message kind '{kind}'.")
 
