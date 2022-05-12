@@ -95,13 +95,6 @@ class Client:
 
         return self._execute([b"GETDEL", key.to_utf8()])[0]
 
-    func strlen(self, key: string) -> i64:
-        """Get the value length for given key.
-
-        """
-
-        return i64(string(self._execute([b"STRLEN", key.to_utf8()])[0]))
-
     func append(self, key: string, value: bytes) -> i64:
         """Append given value for given key.
 
@@ -124,6 +117,13 @@ class Client:
         """
 
         return i64(string(self._execute([b"DECR", key.to_utf8()])[0]))
+
+    func strlen(self, key: string) -> i64:
+        """Get the value length for given key.
+
+        """
+
+        return i64(string(self._execute([b"STRLEN", key.to_utf8()])[0]))
 
     func lpush(self, key: string, value: bytes) -> i64:
         """Prepend given value for given key.
