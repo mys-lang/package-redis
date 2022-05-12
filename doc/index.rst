@@ -18,8 +18,8 @@ Set and get
    func main():
        client = Client()
        client.connect()
-       client.set_string("my_key", "my_value")
-       print(client.get_string("my_key"))
+       client.set("my_key", b"my_value")
+       print(client.get("my_key"))
        client.disconnect()
 
 Publish
