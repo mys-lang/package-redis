@@ -1,9 +1,8 @@
 [package]
-name = "set_get"
+name = "list"
 version = "0.1.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
 description = "Add a short package description here."
 
 [dependencies]
 redis = {"path" = "../.."}
-random = "latest"

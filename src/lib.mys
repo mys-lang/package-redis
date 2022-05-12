@@ -69,7 +69,7 @@ class Client:
         if reply[0] != b"OK":
             raise RedisError("Auth failed!")
 
-    func set_bytes(self, key: string, value: bytes):
+    func set(self, key: string, value: bytes):
         """Set given value for given key.
 
         """
@@ -79,54 +79,28 @@ class Client:
         if reply[0] != b"OK":
             raise RedisError("Set failed!")
 
-    func get_bytes(self, key: string) -> bytes:
+    func get(self, key: string) -> bytes:
         """Get the value for given key.
 
         """
 
         return self._execute([b"GET", key.to_utf8()])[0]
 
-    func set_string(self, key: string, value: string):
-        """Set given value for given key.
+    func lpush(self, key: string, value: bytes) -> i64:
+        reply = self._execute([b"LPUSH", key.to_utf8(), value])
 
-        """
+        return i64(string(reply[0]))
 
-        self.set_bytes(key, value.to_utf8())
+    func lpop(self, key: string) -> bytes:
+        return self._execute([b"LPOP", key.to_utf8()])[0]
 
-    func get_string(self, key: string) -> string:
-        """Get the value for given key.
+    func rpush(self, key: string, value: bytes) -> i64:
+        reply = self._execute([b"RPUSH", key.to_utf8(), value])
 
-        """
+        return i64(string(reply[0]))
 
-        return string(self.get_bytes(key))
-
-    func set_i64(self, key: string, value: i64):
-        """Set given value for given key.
-
-        """
-
-        self.set_string(key, f"{value}")
-
-    func get_i64(self, key: string) -> i64:
-        """Get the value for given key.
-
-        """
-
-        return i64(self.get_string(key))
-
-    func set_f64(self, key: string, value: f64):
-        """Set given value for given key.
-
-        """
-
-        self.set_string(key, f"{value}")
-
-    func get_f64(self, key: string) -> f64:
-        """Get the value for given key.
-
-        """
-
-        return f64(self.get_string(key))
+    func rpop(self, key: string) -> bytes:
+        return self._execute([b"RPOP", key.to_utf8()])[0]
 
     func publish(self, channel: string, message: bytes) -> i64:
         """Publish given message on given channel. Returns the number of

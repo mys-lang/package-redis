@@ -1,0 +1,10 @@
+from redis import Client
+
+func main():
+    client = Client()
+    client.connect()
+
+    client.set("foo", b"\x00\x01\x02")
+    print(client.get("foo"))
+
+    client.disconnect()

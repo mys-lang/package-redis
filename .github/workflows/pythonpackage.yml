@@ -20,7 +20,8 @@ jobs:
     - name: Test
       run: |
         mys test
-        mys -C examples/set_get build
+        mys -C examples/string build
+        mys -C examples/list build
         mys -C examples/pub_sub build
 
   release:

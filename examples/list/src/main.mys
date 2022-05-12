@@ -1,0 +1,15 @@
+from redis import Client
+
+func main():
+    client = Client()
+    client.connect()
+
+    print(client.lpush("bar", b"2"))
+    print(client.lpush("bar", b"1"))
+    print(client.rpush("bar", b"3"))
+
+    print(client.lpop("bar"))
+    print(client.lpop("bar"))
+    print(client.rpop("bar"))
+
+    client.disconnect()
