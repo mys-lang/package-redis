@@ -1,5 +1,5 @@
-from fiber import sleep
 from fiber import Fiber
+from fiber import sleep
 from redis import Client
 from redis import PublishMessage
 from redis import UnsubscribeMessage
