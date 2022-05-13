@@ -1,5 +1,5 @@
-from string import pretty
 from redis import Client
+from string import pretty
 
 func call_print_reply(client: Client, request: [bytes]):
     print("$ ", end="")

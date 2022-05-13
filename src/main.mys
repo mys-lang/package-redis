@@ -1,9 +1,9 @@
 from argparse import Parser
+from redis import BulkStringReply
 from redis import Client
 from redis import ErrorReply
-from redis import SimpleStringReply
-from redis import BulkStringReply
 from redis import IntegerReply
+from redis import SimpleStringReply
 
 func main(argv: [string]):
     parser = Parser()
