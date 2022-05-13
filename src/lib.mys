@@ -439,7 +439,12 @@ class Client:
         return u64(string(self._read_line()))
 
     func _read_line(self) -> bytes:
-        return self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+        line = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+        if line is None:
+            raise RedisError("No line.")
+
+        return line
 
 @test
 func test_string():
