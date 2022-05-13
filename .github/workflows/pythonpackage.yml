@@ -19,7 +19,7 @@ jobs:
         pip install mys
     - name: Test
       run: |
-        mys test
+        mys build
         mys -C examples/string build
         mys -C examples/list build
         mys -C examples/pub_sub build

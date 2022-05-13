@@ -387,3 +387,70 @@ class Client:
 
     func _read_line(self) -> bytes:
         return self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+@test
+func test_string():
+    client = Client()
+    client.connect()
+    client.set("foo", b"\x00\x01\x02")
+    assert client.get("foo") == b"\x00\x01\x02"
+    assert client.strlen("foo") == 3
+    assert client.append("foo", b"\x03\x04") == 5
+    assert client.get("foo") == b"\x00\x01\x02\x03\x04"
+    assert client.getdel("foo") == b"\x00\x01\x02\x03\x04"
+    assert client.append("foo", b"\x00") == 1
+    assert client.get("foo") == b"\x00"
+    client.set("count", b"0")
+    assert client.incr("count") == 1
+    assert client.incr("count") == 2
+    assert client.incr("count") == 3
+    assert client.decr("count") == 2
+    client.disconnect()
+
+@test
+func test_call():
+    client = Client()
+    client.connect()
+
+    match client.call([b"SET", b"foo", b"\x31\x32"]):
+        case SimpleStringReply() as reply:
+            assert reply.value == "OK"
+        case _:
+            assert False
+
+    match client.call([b"DEL", b"bar"]):
+        case IntegerReply():
+            pass
+        case _:
+            assert False
+
+    match client.call([b"HSET", b"bar", b"k1", b"v1"]):
+        case IntegerReply() as reply:
+            assert reply.value == 1
+        case _:
+            assert False
+
+    match client.call([b"HLEN", b"bar"]):
+        case IntegerReply() as reply:
+            assert reply.value == 1
+        case _:
+            assert False
+
+    client.disconnect()
+
+@test
+func test_list():
+    client = Client()
+    client.connect()
+
+    client.call([b"DEL", b"bar"])
+
+    assert client.lpush("bar", b"2") == 1
+    assert client.lpush("bar", b"1") == 2
+    assert client.rpush("bar", b"3") == 3
+
+    assert client.lpop("bar") == b"1"
+    assert client.lpop("bar") == b"2"
+    assert client.rpop("bar") == b"3"
+
+    client.disconnect()
