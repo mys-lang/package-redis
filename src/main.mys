@@ -1,3 +1,4 @@
+from argparse import Parser
 from redis import Client
 from redis import ErrorReply
 from redis import SimpleStringReply
@@ -5,10 +6,16 @@ from redis import BulkStringReply
 from redis import IntegerReply
 
 func main(argv: [string]):
-    client = Client()
-    client.connect()
+    parser = Parser()
+    parser.add_option("--address", default="127.0.0.1")
+    parser.add_option("--port", default="6379")
+    parser.add_positional("command", multiple_occurrences=True)
+    args = parser.parse(argv)
 
-    reply = client.call([arg.to_utf8() for arg in slice(argv, 1)])
+    client = Client()
+    client.connect(args.value_of("--address"), u32(args.value_of("--port")))
+    command = [arg.to_utf8() for arg in args.values_of("command")]
+    reply = client.call(command)
 
     match reply:
         case ErrorReply() as error_reply:
@@ -21,5 +28,9 @@ func main(argv: [string]):
             print(integer_reply.value)
         case _:
             print(reply)
+
+    if command[0] in [b"SUBSCRIBE", b"PSUBSCRIBE"]:
+        while True:
+            print(client.get_message())
 
     client.disconnect()
