@@ -1,0 +1,27 @@
+from string import pretty
+from redis import Client
+
+func call_print_reply(client: Client, request: [bytes]):
+    print("$ ", end="")
+    print(" ".join([string(item) for item in request]))
+    reply = client.call(request)
+    print(pretty(str(reply)))
+
+func main():
+    client = Client()
+    client.connect()
+    call_print_reply(client, [b"SET", b"foo", b"\x31\x32"])
+    call_print_reply(client, [b"DEL", b"bar"])
+    call_print_reply(client, [b"HSET", b"bar", b"k1", b"v1"])
+    call_print_reply(client, [b"HSET", b"bar", b"k2", b"v2"])
+    call_print_reply(client, [b"HSET", b"bar", b"k3", b"v3"])
+    call_print_reply(client, [b"HGET", b"bar", b"k1"])
+    call_print_reply(client, [b"HLEN", b"bar"])
+    call_print_reply(client, [b"HKEYS", b"bar"])
+    call_print_reply(client, [b"HMGET", b"bar", b"k1", b"k2", b"k3"])
+    call_print_reply(client, [b"XTRIM", b"fie", b"MAXLEN", b"0"])
+    call_print_reply(client, [b"XADD", b"fie", b"*", b"f1", b"m1"])
+    call_print_reply(client, [b"XADD", b"fie", b"*", b"f2", b"m2", b"f3", b"m3"])
+    call_print_reply(client, [b"XLEN", b"fie"])
+    call_print_reply(client, [b"XREAD", b"STREAMS", b"fie", b"0-0"])
+    client.disconnect()

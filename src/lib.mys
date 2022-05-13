@@ -11,7 +11,7 @@ class Message:
     """
 
 class SubscribeMessage(Message):
-    """A subscribe reply messasge.
+    """A subscribe reply message.
 
     """
 
@@ -19,7 +19,7 @@ class SubscribeMessage(Message):
     number_of_subscriptions: i64
 
 class UnsubscribeMessage(Message):
-    """An unsubscribe reply messasge.
+    """An unsubscribe reply message.
 
     """
 
@@ -27,12 +27,54 @@ class UnsubscribeMessage(Message):
     number_of_subscriptions: i64
 
 class PublishMessage(Message):
-    """A published messasge.
+    """A published message.
 
     """
 
     channel: string
     payload: bytes
+
+@trait
+class Reply:
+    """A reply.
+
+    """
+
+class SimpleStringReply(Reply):
+    """A simple string.
+
+    """
+
+    value: string
+
+class ErrorReply(Reply):
+    """An error.
+
+    """
+
+    error: string
+    message: string
+
+class IntegerReply(Reply):
+    """An integer.
+
+    """
+
+    value: i64
+
+class BulkStringReply(Reply):
+    """A bulk string.
+
+    """
+
+    value: bytes
+
+class ArrayReply(Reply):
+    """An array.
+
+    """
+
+    items: [Reply]
 
 class Client:
     """A Redis client.
@@ -232,6 +274,45 @@ class Client:
             case _ as kind:
                 raise RedisError(f"Invalid message kind '{kind}'.")
 
+    func call(self, request: [bytes]) -> Reply:
+        """Send given request and wait for a reply.
+
+        """
+
+        self._write_request(request)
+
+        return self._read_reply()
+
+    func _read_reply(self) -> Reply:
+        kind = self._buffered_reader.read(1)
+        data = self._read_line()
+
+        match kind:
+            case b"-":
+                error, _, message = string(data).partition(" ")
+
+                return ErrorReply(error, message)
+            case b"+":
+                return SimpleStringReply(string(data))
+            case b":":
+                return IntegerReply(i64(string(data)))
+            case b"$":
+                length = i64(string(data))
+
+                if length == -1:
+                    return BulkStringReply(None)
+                else:
+                    return BulkStringReply(self._read_line())
+            case b"*":
+                length = i64(string(data))
+
+                if length == -1:
+                    return ArrayReply(None)
+                else:
+                    return ArrayReply([self._read_reply() for _ in range(length)])
+            case _:
+                raise RedisError(f"Invalid reply kind '{kind}'.")
+
     func _call_integer_reply(self, command: [bytes]) -> i64:
         self._write_request(command)
 
@@ -252,9 +333,7 @@ class Client:
         if kind != b"+":
             raise RedisError("Not a response.")
 
-        value = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
-
-        if value != b"OK":
+        if self._read_line() != b"OK":
             raise RedisError("Not OK.")
 
     func _read_reply_string(self) -> bytes:
@@ -263,8 +342,12 @@ class Client:
         if kind != b"$":
             raise RedisError("Not a string.")
 
-        length = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
-        value = self._buffered_reader.read(u64(string(length)))
+        length = i64(string(self._read_line()))
+
+        if length == -1:
+            return None
+
+        value = self._buffered_reader.read(u64(length))
         self._read_cr_lf()
 
         return value
@@ -275,17 +358,13 @@ class Client:
         if kind != b":":
             raise RedisError("Not an integer.")
 
-        value = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
-
-        return i64(string(value))
+        return i64(string(self._read_line()))
 
     func _read_reply_array_length(self) -> u64:
         if self._buffered_reader.read(1) != b"*":
             raise RedisError("Not an array.")
 
-        length = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
-
-        return u64(string(length))
+        return u64(string(self._read_line()))
 
     func _read_reply_string_payload(self, length: u64) -> bytes:
         value = self._buffered_reader.read(length)
@@ -305,3 +384,6 @@ class Client:
             request += b"\r\n"
 
         self._client.write(request)
+
+    func _read_line(self) -> bytes:
+        return self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
