@@ -117,7 +117,7 @@ class Client:
 
         self._call_ok_reply([b"AUTH", password.to_utf8()])
 
-    func del_(self, key: string) -> i64:
+    func del(self, key: string) -> i64:
         """Delete given key.
 
         """
@@ -456,9 +456,9 @@ class Client:
 func test_string():
     client = Client()
     client.connect()
-    client.del_("foo")
+    client.del("foo")
     client.set("foo", b"")
-    assert client.del_("foo") == 1
+    assert client.del("foo") == 1
     client.set("foo", b"\x00\x01\x02")
     assert client.get("foo") == b"\x00\x01\x02"
     assert client.strlen("foo") == 3
@@ -510,7 +510,7 @@ func test_list():
     client = Client()
     client.connect()
 
-    client.del_("bar")
+    client.del("bar")
 
     assert client.lpush("bar", b"2") == 1
     assert client.lpush("bar", b"1") == 2
@@ -527,7 +527,7 @@ func test_hash():
     client = Client()
     client.connect()
 
-    client.del_("fie")
+    client.del("fie")
 
     assert client.hget("fie", "a") is None
 
