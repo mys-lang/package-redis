@@ -7,13 +7,19 @@ from redis import SimpleStringReply
 
 func main(argv: [string]):
     parser = Parser()
-    parser.add_option("--address", default="127.0.0.1")
-    parser.add_option("--port", default="6379")
-    parser.add_positional("command", multiple_occurrences=True)
+    parser.add_option("--host",
+                      default="127.0.0.1",
+                      help="Redis server host (default: 127.0.0.1).")
+    parser.add_option("--port",
+                      default="6379",
+                      help="Redis server port (default: 6379)")
+    parser.add_positional("command",
+                          multiple_occurrences=True,
+                          help="Command to execute.")
     args = parser.parse(argv)
 
     client = Client()
-    client.connect(args.value_of("--address"), u32(args.value_of("--port")))
+    client.connect(args.value_of("--host"), u32(args.value_of("--port")))
     command = [arg.to_utf8() for arg in args.values_of("command")]
     reply = client.call(command)
 
@@ -29,7 +35,7 @@ func main(argv: [string]):
         case _:
             print(reply)
 
-    if command[0] in [b"SUBSCRIBE", b"PSUBSCRIBE"]:
+    if string(command[0]).upper() in ["SUBSCRIBE", "PSUBSCRIBE"]:
         while True:
             print(client.get_message())
 
