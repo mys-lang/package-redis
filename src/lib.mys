@@ -336,7 +336,7 @@ class Client:
         """
 
         self._write_request([b"RESET"])
-        self._read_simple_reply(b"RESET")
+        self._read_simple_reply("RESET")
 
     func call(self, request: [bytes]) -> Reply:
         """Send given request and wait for a reply.
@@ -389,40 +389,29 @@ class Client:
 
     func _call_ok_reply(self, command: [bytes]):
         self._write_request(command)
-        self._read_simple_reply(b"OK")
+        self._read_simple_reply("OK")
 
-    func _read_simple_reply(self, expected: bytes):
-        kind = self._buffered_reader.read(1)
-
-        if kind != b"+":
-            raise RedisError("Not a response.")
-
-        if self._read_line() != expected:
-            raise RedisError("Unexpected reply.")
+    func _read_simple_reply(self, expected: string):
+        match self._read_reply():
+            case SimpleStringReply() as reply:
+                if reply.value != expected:
+                    raise RedisError("Unexpected reply.")
+            case _:
+                raise RedisError("Unexpected reply.")
 
     func _read_reply_string(self) -> bytes:
-        kind = self._buffered_reader.read(1)
-
-        if kind != b"$":
-            raise RedisError("Not a string.")
-
-        length = i64(string(self._read_line()))
-
-        if length == -1:
-            return None
-
-        value = self._buffered_reader.read(u64(length))
-        self._read_cr_lf()
-
-        return value
+        match self._read_reply():
+            case BulkStringReply() as reply:
+                return reply.value
+            case _:
+                raise RedisError("Unexpected reply.")
 
     func _read_reply_integer(self) -> i64:
-        kind = self._buffered_reader.read(1)
-
-        if kind != b":":
-            raise RedisError("Not an integer.")
-
-        return i64(string(self._read_line()))
+        match self._read_reply():
+            case IntegerReply() as reply:
+                return reply.value
+            case _:
+                raise RedisError("Unexpected reply.")
 
     func _read_reply_array_length(self) -> u64:
         if self._buffered_reader.read(1) != b"*":
