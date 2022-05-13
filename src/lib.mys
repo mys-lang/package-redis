@@ -76,6 +76,13 @@ class ArrayReply(Reply):
 
     items: [Reply]
 
+func _unpack_bulk_string(value: Reply, message: string) -> bytes:
+    match value:
+        case BulkStringReply() as bulk_string_reply:
+            return bulk_string_reply.value
+        case _:
+            raise RedisError(message)
+
 class Client:
     """A Redis client.
 
@@ -109,6 +116,13 @@ class Client:
         """
 
         self._call_ok_reply([b"AUTH", password.to_utf8()])
+
+    func del_(self, key: string) -> i64:
+        """Delete given key.
+
+        """
+
+        return self._call_integer_reply([b"DEL", key.to_utf8()])
 
     func set(self, key: string, value: bytes):
         """Set given value for given key.
@@ -188,6 +202,48 @@ class Client:
         """
 
         return self._call_string_reply([b"RPOP", key.to_utf8()])
+
+    func hset(self, key: string, field: string, value: bytes) -> i64:
+        """Set given field to given value for given key.
+
+        """
+
+        return self._call_integer_reply([b"HSET", key.to_utf8(), field.to_utf8(), value])
+
+    func hget(self, key: string, field: string) -> bytes:
+        """Get the value for given field for given key.
+
+        """
+
+        return self._call_string_reply([b"HGET", key.to_utf8(), field.to_utf8()])
+
+    func hgetall(self, key: string) -> {string: bytes}:
+        """Get all fields and valus for given key.
+
+        """
+
+        reply = self.call([b"HGETALL", key.to_utf8()])
+        items: {string: bytes} = {}
+
+        match reply:
+            case ArrayReply() as array_reply:
+                for i in range(0, i64(len(array_reply.items)), 2):
+                    field = string(_unpack_bulk_string(array_reply.items[i + 0],
+                                                       "Bad hash field type."))
+                    value = _unpack_bulk_string(array_reply.items[i + 1],
+                                                "Bad hash value type.")
+                    items[field] = value
+            case _:
+                raise RedisError("Bad hash type.")
+
+        return items
+
+    func hdel(self, key: string, field: string) -> i64:
+        """Delete given field for given key.
+
+        """
+
+        return self._call_integer_reply([b"HDEL", key.to_utf8(), field.to_utf8()])
 
     func publish(self, channel: string, message: bytes) -> i64:
         """Publish given message on given channel. Returns the number of
@@ -274,6 +330,14 @@ class Client:
             case _ as kind:
                 raise RedisError(f"Invalid message kind '{kind}'.")
 
+    func reset(self):
+        """Reset the connection.
+
+        """
+
+        self._write_request([b"RESET"])
+        self._read_simple_reply(b"RESET")
+
     func call(self, request: [bytes]) -> Reply:
         """Send given request and wait for a reply.
 
@@ -325,16 +389,16 @@ class Client:
 
     func _call_ok_reply(self, command: [bytes]):
         self._write_request(command)
-        self._read_reply_ok()
+        self._read_simple_reply(b"OK")
 
-    func _read_reply_ok(self):
+    func _read_simple_reply(self, expected: bytes):
         kind = self._buffered_reader.read(1)
 
         if kind != b"+":
             raise RedisError("Not a response.")
 
-        if self._read_line() != b"OK":
-            raise RedisError("Not OK.")
+        if self._read_line() != expected:
+            raise RedisError("Unexpected reply.")
 
     func _read_reply_string(self) -> bytes:
         kind = self._buffered_reader.read(1)
@@ -392,6 +456,9 @@ class Client:
 func test_string():
     client = Client()
     client.connect()
+    client.del_("foo")
+    client.set("foo", b"")
+    assert client.del_("foo") == 1
     client.set("foo", b"\x00\x01\x02")
     assert client.get("foo") == b"\x00\x01\x02"
     assert client.strlen("foo") == 3
@@ -443,7 +510,7 @@ func test_list():
     client = Client()
     client.connect()
 
-    client.call([b"DEL", b"bar"])
+    client.del_("bar")
 
     assert client.lpush("bar", b"2") == 1
     assert client.lpush("bar", b"1") == 2
@@ -453,4 +520,43 @@ func test_list():
     assert client.lpop("bar") == b"2"
     assert client.rpop("bar") == b"3"
 
+    client.disconnect()
+
+@test
+func test_hash():
+    client = Client()
+    client.connect()
+
+    client.del_("fie")
+
+    assert client.hget("fie", "a") is None
+
+    assert client.hset("fie", "a", b"x") == 1
+    assert client.hset("fie", "b", b"y") == 1
+    assert client.hset("fie", "c", b"z") == 1
+
+    assert client.hget("fie", "a") == b"x"
+    assert client.hget("fie", "b") == b"y"
+    assert client.hget("fie", "c") == b"z"
+
+    items = client.hgetall("fie")
+    assert len(items) == 3
+    assert items["a"] == b"x"
+    assert items["b"] == b"y"
+    assert items["c"] == b"z"
+
+    assert client.hdel("fie", "b") == 1
+    assert client.hdel("fie", "b") == 0
+
+    assert client.hget("fie", "a") == b"x"
+    assert client.hget("fie", "b") is None
+    assert client.hget("fie", "c") == b"z"
+
+    client.disconnect()
+
+@test
+func test_reset():
+    client = Client()
+    client.connect()
+    client.reset()
     client.disconnect()
