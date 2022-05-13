@@ -347,6 +347,16 @@ class Client:
 
         return self._read_reply()
 
+    func _write_request(self, command: [bytes]):
+        request = f"*{len(command)}\r\n".to_utf8()
+
+        for item in command:
+            request += f"${len(item)}\r\n".to_utf8()
+            request += item
+            request += b"\r\n"
+
+        self._client.write(request)
+
     func _read_reply(self) -> Reply:
         kind = self._buffered_reader.read(1)
         data = self._read_line()
@@ -377,6 +387,15 @@ class Client:
             case _:
                 raise RedisError(f"Invalid reply kind '{kind}'.")
 
+    func _read_reply_check_error(self) -> Reply:
+        reply = self._read_reply()
+
+        match reply:
+            case ErrorReply() as error_reply:
+                raise RedisError(f"{error_reply.error}: {error_reply.message}")
+
+        return reply
+
     func _call_integer_reply(self, command: [bytes]) -> i64:
         self._write_request(command)
 
@@ -392,7 +411,7 @@ class Client:
         self._read_simple_reply("OK")
 
     func _read_simple_reply(self, expected: string):
-        match self._read_reply():
+        match self._read_reply_check_error():
             case SimpleStringReply() as reply:
                 if reply.value != expected:
                     raise RedisError("Unexpected reply.")
@@ -400,14 +419,14 @@ class Client:
                 raise RedisError("Unexpected reply.")
 
     func _read_reply_string(self) -> bytes:
-        match self._read_reply():
+        match self._read_reply_check_error():
             case BulkStringReply() as reply:
                 return reply.value
             case _:
                 raise RedisError("Unexpected reply.")
 
     func _read_reply_integer(self) -> i64:
-        match self._read_reply():
+        match self._read_reply_check_error():
             case IntegerReply() as reply:
                 return reply.value
             case _:
@@ -418,25 +437,6 @@ class Client:
             raise RedisError("Not an array.")
 
         return u64(string(self._read_line()))
-
-    func _read_reply_string_payload(self, length: u64) -> bytes:
-        value = self._buffered_reader.read(length)
-        self._read_cr_lf()
-
-        return value
-
-    func _read_cr_lf(self):
-        self._buffered_reader.read(2)
-
-    func _write_request(self, command: [bytes]):
-        request = f"*{len(command)}\r\n".to_utf8()
-
-        for item in command:
-            request += f"${len(item)}\r\n".to_utf8()
-            request += item
-            request += b"\r\n"
-
-        self._client.write(request)
 
     func _read_line(self) -> bytes:
         return self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
@@ -548,4 +548,19 @@ func test_reset():
     client = Client()
     client.connect()
     client.reset()
+    client.disconnect()
+
+@test
+func test_auth():
+    client = Client()
+    client.connect()
+
+    try:
+        message = ""
+        client.auth("pass")
+    except RedisError as error:
+        message = error.message
+
+    assert "ERR: AUTH" in message
+
     client.disconnect()
