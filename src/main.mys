@@ -1,0 +1,25 @@
+from redis import Client
+from redis import ErrorReply
+from redis import SimpleStringReply
+from redis import BulkStringReply
+from redis import IntegerReply
+
+func main(argv: [string]):
+    client = Client()
+    client.connect()
+
+    reply = client.call([arg.to_utf8() for arg in slice(argv, 1)])
+
+    match reply:
+        case ErrorReply() as error_reply:
+            print(f"{error_reply.error}: {error_reply.message}")
+        case SimpleStringReply() as simple_string_reply:
+            print(simple_string_reply.value)
+        case BulkStringReply() as bulk_string_reply:
+            print(string(bulk_string_reply.value))
+        case IntegerReply() as integer_reply:
+            print(integer_reply.value)
+        case _:
+            print(reply)
+
+    client.disconnect()
