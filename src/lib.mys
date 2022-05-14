@@ -97,6 +97,31 @@ func _unpack_integer(value: Reply, message: string) -> i64:
         case _:
             raise RedisError(message)
 
+func _unpack_simple_string(value: Reply, message: string) -> string:
+    match value:
+        case SimpleStringReply() as simple_string_reply:
+            return simple_string_reply.value
+        case _:
+            raise RedisError(message)
+
+func _check_simple_string_reply(reply: string, expected: string):
+    if reply != expected:
+        raise RedisError(
+            f"Unexpected simple string reply '{reply}' when expecting "
+            f"'{expected}'.")
+
+func _unpack_publish(channel: Reply, payload: Reply) -> PublishMessage:
+    return PublishMessage(string(_unpack_bulk_string(channel, "No channel.")),
+                          _unpack_bulk_string(payload, "No payload."))
+
+func _unpack_subscribe(channel: Reply, count: Reply) -> SubscribeMessage:
+    return SubscribeMessage(string(_unpack_bulk_string(channel, "No channel.")),
+                            _unpack_integer(count, "No count."))
+
+func _unpack_unsubscribe(channel: Reply, count: Reply) -> UnsubscribeMessage:
+    return UnsubscribeMessage(string(_unpack_bulk_string(channel, "No channel.")),
+                              _unpack_integer(count, "No count."))
+
 class Client:
     """A Redis client.
 
@@ -129,7 +154,7 @@ class Client:
 
         """
 
-        self._call_ok_reply([b"AUTH", password.to_utf8()])
+        self._call_simple_string_reply_ok([b"AUTH", password.to_utf8()])
 
     func del(self, key: string) -> i64:
         """Delete given key.
@@ -143,7 +168,7 @@ class Client:
 
         """
 
-        self._call_ok_reply([b"SET", key.to_utf8(), value])
+        self._call_simple_string_reply_ok([b"SET", key.to_utf8(), value])
 
     func get(self, key: string) -> bytes:
         """Get the value for given key.
@@ -237,18 +262,15 @@ class Client:
         """
 
         reply = self.call([b"HGETALL", key.to_utf8()])
+        reply_items = _unpack_array(reply, "Bad hash type.")
         items: {string: bytes} = {}
 
-        match reply:
-            case ArrayReply() as array_reply:
-                for i in range(0, i64(len(array_reply.items)), 2):
-                    field = string(_unpack_bulk_string(array_reply.items[i + 0],
-                                                       "Bad hash field type."))
-                    value = _unpack_bulk_string(array_reply.items[i + 1],
-                                                "Bad hash value type.")
-                    items[field] = value
-            case _:
-                raise RedisError("Bad hash type.")
+        for i in range(0, i64(len(reply_items)), 2):
+            field = string(_unpack_bulk_string(reply_items[i + 0],
+                                               "Bad hash field type."))
+            value = _unpack_bulk_string(reply_items[i + 1],
+                                        "Bad hash value type.")
+            items[field] = value
 
         return items
 
@@ -311,38 +333,20 @@ class Client:
 
         match _unpack_bulk_string(items[0], "No message kind."):
             case b"message":
-                channel = string(_unpack_bulk_string(items[1], "No channel."))
-                payload = _unpack_bulk_string(items[2], "No payload.")
-
-                return PublishMessage(channel, payload)
+                return _unpack_publish(items[1], items[2])
             case b"pmessage":
                 if len(items) < 4:
                     raise RedisError("Message too short.")
 
-                channel = string(_unpack_bulk_string(items[2], "No channel."))
-                payload = _unpack_bulk_string(items[3], "No payload.")
-
-                return PublishMessage(channel, payload)
+                return _unpack_publish(items[2], items[3])
             case b"subscribe":
-                channel = string(_unpack_bulk_string(items[1], "No channel."))
-                count = _unpack_integer(items[2], "No count.")
-
-                return SubscribeMessage(channel, count)
+                return _unpack_subscribe(items[1], items[2])
             case b"unsubscribe":
-                channel = string(_unpack_bulk_string(items[1], "No channel."))
-                count = _unpack_integer(items[2], "No count.")
-
-                return UnsubscribeMessage(channel, count)
+                return _unpack_unsubscribe(items[1], items[2])
             case b"psubscribe":
-                channel = string(_unpack_bulk_string(items[1], "No channel."))
-                count = _unpack_integer(items[2], "No count.")
-
-                return SubscribeMessage(channel, count)
+                return _unpack_subscribe(items[1], items[2])
             case b"punsubscribe":
-                channel = string(_unpack_bulk_string(items[1], "No channel."))
-                count = _unpack_integer(items[2], "No count.")
-
-                return UnsubscribeMessage(channel, count)
+                return _unpack_unsubscribe(items[1], items[2])
             case _ as kind:
                 raise RedisError(f"Invalid message kind '{kind}'.")
 
@@ -351,8 +355,8 @@ class Client:
 
         """
 
-        self._write_request([b"RESET"])
-        self._read_simple_reply("RESET")
+        reply = self.call_simple_string_reply([b"RESET"])
+        _check_simple_string_reply(reply, "RESET")
 
     func call(self, command: [bytes]) -> Reply:
         """Call given command.
@@ -370,7 +374,8 @@ class Client:
 
         self._write_request(command)
 
-        return self._read_reply_integer()
+        return _unpack_integer(self._read_reply_check_error(),
+                               "Not an integer reply.")
 
     func call_bulk_string_reply(self, command: [bytes]) -> bytes:
         """Call given command and expect a bulk string ($) reply.
@@ -379,7 +384,8 @@ class Client:
 
         self._write_request(command)
 
-        return self._read_reply_string()
+        return _unpack_bulk_string(self._read_reply_check_error(),
+                                   "Not a bulk string reply.")
 
     func call_simple_string_reply(self, command: [bytes]) -> string:
         """Call given command and expect a simple string (+) reply.
@@ -388,7 +394,8 @@ class Client:
 
         self._write_request(command)
 
-        return self._read_reply_simple_string()
+        return _unpack_simple_string(self._read_reply_check_error(),
+                                     "Not a simple string reply.")
 
     func _write_request(self, command: [bytes]):
         request = f"*{len(command)}\r\n".to_utf8()
@@ -439,44 +446,9 @@ class Client:
 
         return reply
 
-    func _call_ok_reply(self, command: [bytes]):
-        self._write_request(command)
-        self._read_simple_reply("OK")
-
-    func _read_simple_reply(self, expected: string):
-        reply = self._read_reply_simple_string()
-
-        if reply != expected:
-            raise RedisError(
-                f"Unexpected simple string reply '{reply}' when expecting "
-                f"'{expected}'.")
-
-    func _read_reply_string(self) -> bytes:
-        match self._read_reply_check_error():
-            case BulkStringReply() as reply:
-                return reply.value
-            case _:
-                raise RedisError("Not a bulk string reply.")
-
-    func _read_reply_integer(self) -> i64:
-        match self._read_reply_check_error():
-            case IntegerReply() as reply:
-                return reply.value
-            case _:
-                raise RedisError("Not an integer reply.")
-
-    func _read_reply_simple_string(self) -> string:
-        match self._read_reply_check_error():
-            case SimpleStringReply() as reply:
-                return reply.value
-            case _:
-                raise RedisError("Not a simple string reply.")
-
-    func _read_reply_array_length(self) -> u64:
-        if self._buffered_reader.read(1) != b"*":
-            raise RedisError("Not an array.")
-
-        return u64(string(self._read_line()))
+    func _call_simple_string_reply_ok(self, command: [bytes]):
+        reply = self.call_simple_string_reply(command)
+        _check_simple_string_reply(reply, "OK")
 
     func _read_line(self) -> bytes:
         line = self._buffered_reader.read_until(b"\r\n", keep_pattern=False)
