@@ -654,3 +654,34 @@ func test_pub_sub():
 
     subscriber.disconnect()
     publisher.disconnect()
+
+@test
+func test_wrong_reply():
+    client = Client()
+    client.connect()
+
+    try:
+        message = ""
+        client.call_integer_reply([b"GET", b"foo"])
+    except RedisError as error:
+        message = error.message
+
+    assert message == "Not an integer reply."
+
+    try:
+        message = ""
+        client.call_bulk_string_reply([b"DEL", b"foo"])
+    except RedisError as error:
+        message = error.message
+
+    assert message == "Not a bulk string reply."
+
+    try:
+        message = ""
+        client.call_simple_string_reply([b"DEL", b"foo"])
+    except RedisError as error:
+        message = error.message
+
+    assert message == "Not a simple string reply."
+
+    client.disconnect()
