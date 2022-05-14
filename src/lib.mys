@@ -358,14 +358,6 @@ class Client:
             case _ as kind:
                 raise RedisError(f"Invalid message kind '{kind}'.")
 
-    func reset(self):
-        """Reset the connection.
-
-        """
-
-        reply = self.call_simple_string_reply([b"RESET"])
-        _check_simple_string_reply(reply, "RESET")
-
     func call(self, command: [bytes]) -> Reply:
         """Call given command.
 
@@ -566,13 +558,6 @@ func test_hash():
     assert client.hget("fie", "b") is None
     assert client.hget("fie", "c") == b"z"
 
-    client.disconnect()
-
-@test
-func test_reset():
-    client = Client()
-    client.connect()
-    client.reset()
     client.disconnect()
 
 @test
