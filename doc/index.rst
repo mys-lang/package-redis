@@ -8,8 +8,8 @@ Project: https://github.com/mys-lang/package-redis
 Examples
 ========
 
-Set and get
------------
+String
+------
 
 .. code-block:: mys
 
@@ -20,6 +20,40 @@ Set and get
        client.connect()
        client.set("my_key", b"my_value")
        print(client.get("my_key"))
+       client.disconnect()
+
+List
+----
+
+.. code-block:: mys
+
+   from redis import Client
+
+   func main():
+       client = Client()
+       client.connect()
+       client.lpush("bar", b"1")
+       client.rpush("bar", b"2")
+       print(client.lpop("bar"))
+       print(client.rpop("bar"))
+       client.disconnect()
+
+Hash
+----
+
+.. code-block:: mys
+
+   from redis import Client
+
+   func main():
+       client = Client()
+       client.connect()
+       client.hset("fie", "a", b"x")
+       client.hset("fie", "b", b"y")
+       print(client.hget("fie", "a"))
+       print(client.hgetall("fie"))
+       client.hdel("fie", "a")
+       print(client.hgetall("fie"))
        client.disconnect()
 
 Publish
