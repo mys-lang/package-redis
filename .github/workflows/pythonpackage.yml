@@ -20,9 +20,12 @@ jobs:
     - name: Test
       run: |
         mys build
-        mys -C examples/string build
+    - name: Examples
+      run: |
+        mys -C examples/call build
         mys -C examples/list build
         mys -C examples/pub_sub build
+        mys -C examples/string build
 
   release:
     needs: [linux]

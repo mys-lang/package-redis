@@ -1,9 +1,32 @@
 from argparse import Parser
+from redis import ArrayReply
 from redis import BulkStringReply
 from redis import Client
 from redis import ErrorReply
 from redis import IntegerReply
+from redis import Reply
 from redis import SimpleStringReply
+
+func _print(value: string, indent: string):
+    print(indent, end="")
+    print(value)
+
+func _print_reply(reply: Reply, indent: string = ""):
+    match reply:
+        case ErrorReply() as error_reply:
+            _print(f"{error_reply.error}: {error_reply.message} (error)", indent)
+        case SimpleStringReply() as simple_string_reply:
+            _print(f"{simple_string_reply.value} (simple string)", indent)
+        case BulkStringReply() as bulk_string_reply:
+            _print(f"\"{string(bulk_string_reply.value)}\"", indent)
+        case IntegerReply() as integer_reply:
+            _print(str(integer_reply.value), indent)
+        case ArrayReply() as array_reply:
+            _print("(array)", indent)
+
+            if array_reply.items is not None:
+                for item in array_reply.items:
+                    _print_reply(item, indent + "    ")
 
 func main(argv: [string]):
     parser = Parser()
@@ -20,20 +43,9 @@ func main(argv: [string]):
 
     client = Client()
     client.connect(args.value_of("--host"), u32(args.value_of("--port")))
-    command = [arg.to_utf8() for arg in args.values_of("command")]
-    reply = client.call(command)
 
-    match reply:
-        case ErrorReply() as error_reply:
-            print(f"{error_reply.error}: {error_reply.message}")
-        case SimpleStringReply() as simple_string_reply:
-            print(simple_string_reply.value)
-        case BulkStringReply() as bulk_string_reply:
-            print(string(bulk_string_reply.value))
-        case IntegerReply() as integer_reply:
-            print(integer_reply.value)
-        case _:
-            print(reply)
+    command = [arg.to_utf8() for arg in args.values_of("command")]
+    _print_reply(client.call(command))
 
     if string(command[0]).upper() in ["SUBSCRIBE", "PSUBSCRIBE"]:
         while True:
