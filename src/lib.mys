@@ -11,7 +11,7 @@ class Message:
     """
 
 class SubscribeMessage(Message):
-    """A subscribe reply message.
+    """A Pub/Sub subscribe reply message.
 
     """
 
@@ -19,7 +19,7 @@ class SubscribeMessage(Message):
     number_of_subscriptions: i64
 
 class UnsubscribeMessage(Message):
-    """An unsubscribe reply message.
+    """An Pub/Sub unsubscribe reply message.
 
     """
 
@@ -27,7 +27,7 @@ class UnsubscribeMessage(Message):
     number_of_subscriptions: i64
 
 class PublishMessage(Message):
-    """A published message.
+    """A Pub/Sub published message.
 
     """
 
@@ -36,19 +36,19 @@ class PublishMessage(Message):
 
 @trait
 class Reply:
-    """A reply.
+    """A command reply.
 
     """
 
 class SimpleStringReply(Reply):
-    """A simple string.
+    """A simple string command reply.
 
     """
 
     value: string
 
 class ErrorReply(Reply):
-    """An error.
+    """An error command reply.
 
     """
 
@@ -56,21 +56,21 @@ class ErrorReply(Reply):
     message: string
 
 class IntegerReply(Reply):
-    """An integer.
+    """An integer command reply.
 
     """
 
     value: i64
 
 class BulkStringReply(Reply):
-    """A bulk string.
+    """A bulk string command reply.
 
     """
 
     value: bytes
 
 class ArrayReply(Reply):
-    """An array.
+    """An array command reply.
 
     """
 
@@ -122,7 +122,7 @@ class Client:
 
         """
 
-        return self._call_integer_reply([b"DEL", key.to_utf8()])
+        return self.call_integer_reply([b"DEL", key.to_utf8()])
 
     func set(self, key: string, value: bytes):
         """Set given value for given key.
@@ -136,21 +136,21 @@ class Client:
 
         """
 
-        return self._call_string_reply([b"GET", key.to_utf8()])
+        return self.call_bulk_string_reply([b"GET", key.to_utf8()])
 
     func getdel(self, key: string) -> bytes:
         """Get the value for given key and then delete it.
 
         """
 
-        return self._call_string_reply([b"GETDEL", key.to_utf8()])
+        return self.call_bulk_string_reply([b"GETDEL", key.to_utf8()])
 
     func append(self, key: string, value: bytes) -> i64:
         """Append given value for given key.
 
         """
 
-        return self._call_integer_reply([b"APPEND", key.to_utf8(), value])
+        return self.call_integer_reply([b"APPEND", key.to_utf8(), value])
 
     func incr(self, key: string) -> i64:
         """Increment the value for given key. Returns the value after the
@@ -158,7 +158,7 @@ class Client:
 
         """
 
-        return self._call_integer_reply([b"INCR", key.to_utf8()])
+        return self.call_integer_reply([b"INCR", key.to_utf8()])
 
     func decr(self, key: string) -> i64:
         """Decrement the value for given key. Returns the value after the
@@ -166,59 +166,59 @@ class Client:
 
         """
 
-        return self._call_integer_reply([b"DECR", key.to_utf8()])
+        return self.call_integer_reply([b"DECR", key.to_utf8()])
 
     func strlen(self, key: string) -> i64:
         """Get the value length for given key.
 
         """
 
-        return self._call_integer_reply([b"STRLEN", key.to_utf8()])
+        return self.call_integer_reply([b"STRLEN", key.to_utf8()])
 
     func lpush(self, key: string, value: bytes) -> i64:
-        """Prepend given value for given key.
+        """Prepend given value for given list key.
 
         """
 
-        return self._call_integer_reply([b"LPUSH", key.to_utf8(), value])
+        return self.call_integer_reply([b"LPUSH", key.to_utf8(), value])
 
     func lpop(self, key: string) -> bytes:
-        """Pop the first value for given key.
+        """Pop the first value for given list key.
 
         """
 
-        return self._call_string_reply([b"LPOP", key.to_utf8()])
+        return self.call_bulk_string_reply([b"LPOP", key.to_utf8()])
 
     func rpush(self, key: string, value: bytes) -> i64:
-        """Append given value for given key.
+        """Append given value for given list key.
 
         """
 
-        return self._call_integer_reply([b"RPUSH", key.to_utf8(), value])
+        return self.call_integer_reply([b"RPUSH", key.to_utf8(), value])
 
     func rpop(self, key: string) -> bytes:
-        """Pop the last value for given key.
+        """Pop the last value for given list key.
 
         """
 
-        return self._call_string_reply([b"RPOP", key.to_utf8()])
+        return self.call_bulk_string_reply([b"RPOP", key.to_utf8()])
 
     func hset(self, key: string, field: string, value: bytes) -> i64:
-        """Set given field to given value for given key.
+        """Set given field to given value for given hash key.
 
         """
 
-        return self._call_integer_reply([b"HSET", key.to_utf8(), field.to_utf8(), value])
+        return self.call_integer_reply([b"HSET", key.to_utf8(), field.to_utf8(), value])
 
     func hget(self, key: string, field: string) -> bytes:
-        """Get the value for given field for given key.
+        """Get the value for given field for given hash key.
 
         """
 
-        return self._call_string_reply([b"HGET", key.to_utf8(), field.to_utf8()])
+        return self.call_bulk_string_reply([b"HGET", key.to_utf8(), field.to_utf8()])
 
     func hgetall(self, key: string) -> {string: bytes}:
-        """Get all fields and valus for given key.
+        """Get all fields and valus for given hash key.
 
         """
 
@@ -239,11 +239,11 @@ class Client:
         return items
 
     func hdel(self, key: string, field: string) -> i64:
-        """Delete given field for given key.
+        """Delete given field for given hash key.
 
         """
 
-        return self._call_integer_reply([b"HDEL", key.to_utf8(), field.to_utf8()])
+        return self.call_integer_reply([b"HDEL", key.to_utf8(), field.to_utf8()])
 
     func publish(self, channel: string, message: bytes) -> i64:
         """Publish given message on given channel. Returns the number of
@@ -251,7 +251,7 @@ class Client:
 
         """
 
-        return self._call_integer_reply([b"PUBLISH", channel.to_utf8(), message])
+        return self.call_integer_reply([b"PUBLISH", channel.to_utf8(), message])
 
     func subscribe(self, channel: string):
         """Subscribe to given channel. May be called from any fiber, even
@@ -286,7 +286,7 @@ class Client:
         self._write_request([b"PUNSUBSCRIBE", pattern.to_utf8()])
 
     func get_message(self) -> Message:
-        """Get the next message. Blocks until a message is received.
+        """Get the next Pub/Sub message. Blocks until a message is received.
 
         """
 
@@ -338,14 +338,41 @@ class Client:
         self._write_request([b"RESET"])
         self._read_simple_reply("RESET")
 
-    func call(self, request: [bytes]) -> Reply:
-        """Send given request and wait for a reply.
+    func call(self, command: [bytes]) -> Reply:
+        """Call given command.
 
         """
 
-        self._write_request(request)
+        self._write_request(command)
 
         return self._read_reply()
+
+    func call_integer_reply(self, command: [bytes]) -> i64:
+        """Call given command and expect an integer (:) reply.
+
+        """
+
+        self._write_request(command)
+
+        return self._read_reply_integer()
+
+    func call_bulk_string_reply(self, command: [bytes]) -> bytes:
+        """Call given command and expect a bulk string ($) reply.
+
+        """
+
+        self._write_request(command)
+
+        return self._read_reply_string()
+
+    func call_simple_string_reply(self, command: [bytes]) -> string:
+        """Call given command and expect a simple string (+) reply.
+
+        """
+
+        self._write_request(command)
+
+        return self._read_reply_simple_string()
 
     func _write_request(self, command: [bytes]):
         request = f"*{len(command)}\r\n".to_utf8()
@@ -396,41 +423,38 @@ class Client:
 
         return reply
 
-    func _call_integer_reply(self, command: [bytes]) -> i64:
-        self._write_request(command)
-
-        return self._read_reply_integer()
-
-    func _call_string_reply(self, command: [bytes]) -> bytes:
-        self._write_request(command)
-
-        return self._read_reply_string()
-
     func _call_ok_reply(self, command: [bytes]):
         self._write_request(command)
         self._read_simple_reply("OK")
 
     func _read_simple_reply(self, expected: string):
-        match self._read_reply_check_error():
-            case SimpleStringReply() as reply:
-                if reply.value != expected:
-                    raise RedisError("Unexpected reply.")
-            case _:
-                raise RedisError("Unexpected reply.")
+        reply = self._read_reply_simple_string()
+
+        if reply != expected:
+            raise RedisError(
+                f"Unexpected simple string reply '{reply}' when expecting "
+                f"'{expected}'.")
 
     func _read_reply_string(self) -> bytes:
         match self._read_reply_check_error():
             case BulkStringReply() as reply:
                 return reply.value
             case _:
-                raise RedisError("Unexpected reply.")
+                raise RedisError("Not a bulk string reply.")
 
     func _read_reply_integer(self) -> i64:
         match self._read_reply_check_error():
             case IntegerReply() as reply:
                 return reply.value
             case _:
-                raise RedisError("Unexpected reply.")
+                raise RedisError("Not an integer reply.")
+
+    func _read_reply_simple_string(self) -> string:
+        match self._read_reply_check_error():
+            case SimpleStringReply() as reply:
+                return reply.value
+            case _:
+                raise RedisError("Not a simple string reply.")
 
     func _read_reply_array_length(self) -> u64:
         if self._buffered_reader.read(1) != b"*":
@@ -569,3 +593,68 @@ func test_auth():
     assert "ERR: AUTH" in message
 
     client.disconnect()
+
+@test
+func test_pub_sub():
+    subscriber = Client()
+    publisher = Client()
+
+    subscriber.connect()
+    publisher.connect()
+
+    subscriber.subscribe("foo")
+
+    match subscriber.get_message():
+        case SubscribeMessage() as subscribe_message:
+            assert subscribe_message.channel == "foo"
+            assert subscribe_message.number_of_subscriptions == 1
+        case _:
+            assert False
+
+    publisher.publish("foo", b"bar")
+
+    match subscriber.get_message():
+        case PublishMessage() as publish_message:
+            assert publish_message.channel == "foo"
+            assert publish_message.payload == b"bar"
+        case _:
+            assert False
+
+    subscriber.psubscribe("foo*")
+
+    match subscriber.get_message():
+        case SubscribeMessage() as subscribe_message:
+            assert subscribe_message.channel == "foo*"
+            assert subscribe_message.number_of_subscriptions == 2
+        case _:
+            assert False
+
+    subscriber.unsubscribe("foo")
+
+    match subscriber.get_message():
+        case UnsubscribeMessage() as unsubscribe_message:
+            assert unsubscribe_message.channel == "foo"
+            assert unsubscribe_message.number_of_subscriptions == 1
+        case _:
+            assert False
+
+    publisher.publish("foo123", b"bar987")
+
+    match subscriber.get_message():
+        case PublishMessage() as publish_message:
+            assert publish_message.channel == "foo123"
+            assert publish_message.payload == b"bar987"
+        case _:
+            assert False
+
+    subscriber.punsubscribe("foo*")
+
+    match subscriber.get_message():
+        case UnsubscribeMessage() as unsubscribe_message:
+            assert unsubscribe_message.channel == "foo*"
+            assert unsubscribe_message.number_of_subscriptions == 0
+        case _:
+            assert False
+
+    subscriber.disconnect()
+    publisher.disconnect()
