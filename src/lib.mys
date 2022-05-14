@@ -293,6 +293,10 @@ class Client:
         """Subscribe to given channel. May be called from any fiber, even
         if another fiber is waiting for a message.
 
+        Call get_message() to receive messages.
+
+        Only a limited set of commands are allowed once in Pub/Sub mode.
+
         """
 
         self._write_request([b"SUBSCRIBE", channel.to_utf8()])
@@ -308,6 +312,10 @@ class Client:
     func psubscribe(self, pattern: string):
         """Subscribe to given pattern. May be called from any fiber, even
         if another fiber is waiting for a message.
+
+        Call get_message() to receive messages.
+
+        Only a limited set of commands are allowed once in Pub/Sub mode.
 
         """
 
