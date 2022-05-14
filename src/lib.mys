@@ -83,6 +83,20 @@ func _unpack_bulk_string(value: Reply, message: string) -> bytes:
         case _:
             raise RedisError(message)
 
+func _unpack_array(value: Reply, message: string) -> [Reply]:
+    match value:
+        case ArrayReply() as array_reply:
+            return array_reply.items
+        case _:
+            raise RedisError(message)
+
+func _unpack_integer(value: Reply, message: string) -> i64:
+    match value:
+        case IntegerReply() as integer_reply:
+            return integer_reply.value
+        case _:
+            raise RedisError(message)
+
 class Client:
     """A Redis client.
 
@@ -290,41 +304,43 @@ class Client:
 
         """
 
-        length = self._read_reply_array_length()
+        items = _unpack_array(self._read_reply(), "Not a reply.")
 
-        if length < 3:
-            raise RedisError("Array too short.")
+        if len(items) < 3:
+            raise RedisError("Message too short.")
 
-        match self._read_reply_string():
+        match _unpack_bulk_string(items[0], "No message kind."):
             case b"message":
-                channel = string(self._read_reply_string())
-                payload = self._read_reply_string()
+                channel = string(_unpack_bulk_string(items[1], "No channel."))
+                payload = _unpack_bulk_string(items[2], "No payload.")
 
                 return PublishMessage(channel, payload)
             case b"pmessage":
-                self._read_reply_string()
-                channel = string(self._read_reply_string())
-                payload = self._read_reply_string()
+                if len(items) < 4:
+                    raise RedisError("Message too short.")
+
+                channel = string(_unpack_bulk_string(items[2], "No channel."))
+                payload = _unpack_bulk_string(items[3], "No payload.")
 
                 return PublishMessage(channel, payload)
             case b"subscribe":
-                channel = string(self._read_reply_string())
-                count = self._read_reply_integer()
+                channel = string(_unpack_bulk_string(items[1], "No channel."))
+                count = _unpack_integer(items[2], "No count.")
 
                 return SubscribeMessage(channel, count)
             case b"unsubscribe":
-                channel = string(self._read_reply_string())
-                count = self._read_reply_integer()
+                channel = string(_unpack_bulk_string(items[1], "No channel."))
+                count = _unpack_integer(items[2], "No count.")
 
                 return UnsubscribeMessage(channel, count)
             case b"psubscribe":
-                channel = string(self._read_reply_string())
-                count = self._read_reply_integer()
+                channel = string(_unpack_bulk_string(items[1], "No channel."))
+                count = _unpack_integer(items[2], "No count.")
 
                 return SubscribeMessage(channel, count)
             case b"punsubscribe":
-                channel = string(self._read_reply_string())
-                count = self._read_reply_integer()
+                channel = string(_unpack_bulk_string(items[1], "No channel."))
+                count = _unpack_integer(items[2], "No count.")
 
                 return UnsubscribeMessage(channel, count)
             case _ as kind:
