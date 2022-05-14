@@ -14,11 +14,11 @@ func _print(value: string, indent: string):
 func _print_reply(reply: Reply, indent: string = ""):
     match reply:
         case ErrorReply() as error_reply:
-            _print(f"{error_reply.error}: {error_reply.message} (error)", indent)
+            _print(f"{error_reply.error}: {error_reply.message}", indent)
         case SimpleStringReply() as simple_string_reply:
-            _print(f"{simple_string_reply.value} (simple string)", indent)
+            _print(simple_string_reply.value, indent)
         case BulkStringReply() as bulk_string_reply:
-            _print(f"\"{string(bulk_string_reply.value)}\"", indent)
+            _print(string(bulk_string_reply.value), indent)
         case IntegerReply() as integer_reply:
             _print(str(integer_reply.value), indent)
         case ArrayReply() as array_reply:
