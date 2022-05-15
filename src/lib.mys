@@ -161,21 +161,26 @@ class Client:
 
         """
 
-        return self.call_integer_reply([b"DEL", key.to_utf8()])
+        self.del_write(key)
+
+        return self.del_read()
 
     func set(self, key: string, value: bytes):
         """Set given value for given key.
 
         """
 
-        self._call_simple_string_reply_ok([b"SET", key.to_utf8(), value])
+        self.set_write(key, value)
+        self.set_read()
 
     func get(self, key: string) -> bytes:
         """Get the value for given key.
 
         """
 
-        return self.call_bulk_string_reply([b"GET", key.to_utf8()])
+        self.get_write(key)
+
+        return self.get_read()
 
     func getdel(self, key: string) -> bytes:
         """Get the value for given key and then delete it.
@@ -395,14 +400,14 @@ class Client:
 
         return self._read_simple_string_reply_check_error()
 
-    func write_set(self, key: string, value: bytes):
+    func set_write(self, key: string, value: bytes):
         """Write pipelined set given value for given key.
 
         """
 
         self._write_request([b"SET", key.to_utf8(), value])
 
-    func read_set(self):
+    func set_read(self):
         """Read pipelined set given value for given key.
 
         """
@@ -410,28 +415,28 @@ class Client:
         reply = self._read_simple_string_reply_check_error()
         _check_simple_string_reply(reply, "OK")
 
-    func write_get(self, key: string):
+    func get_write(self, key: string):
         """Write pipelined get the value for given key.
 
         """
 
         self._write_request([b"GET", key.to_utf8()])
 
-    func read_get(self) -> bytes:
+    func get_read(self) -> bytes:
         """Read pipelined get the value for given key.
 
         """
 
         return self._read_bulk_string_reply_check_error()
 
-    func write_del(self, key: string):
+    func del_write(self, key: string):
         """Write pipelined delete given key.
 
         """
 
         self._write_request([b"DEL", key.to_utf8()])
 
-    func read_del(self) -> i64:
+    func del_read(self) -> i64:
         """Read pipelined delete given key.
 
         """
@@ -730,15 +735,15 @@ func test_string_pipeline():
     client.connect()
     client.del("foo")
 
-    client.write_set("foo", b"")
-    client.write_del("foo")
-    client.write_set("foo", b"\x00\x01\x02")
-    client.write_get("foo")
+    client.set_write("foo", b"")
+    client.del_write("foo")
+    client.set_write("foo", b"\x00\x01\x02")
+    client.get_write("foo")
 
-    client.read_set()
-    assert client.read_del() == 1
-    client.read_set()
-    assert client.read_get() == b"\x00\x01\x02"
+    client.set_read()
+    assert client.del_read() == 1
+    client.set_read()
+    assert client.get_read() == b"\x00\x01\x02"
 
     # assert client.strlen("foo") == 3
     # assert client.append("foo", b"\x03\x04") == 5
