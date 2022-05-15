@@ -1,0 +1,35 @@
+from redis import Client
+
+func main():
+    client = Client()
+    client.connect()
+
+    client.write_set("foo", b"\x00\x01\x02")
+    client.write_get("foo")
+    client.read_set()
+    # client.write_strlen("foo")
+    # client.write_append("foo", b"\x03\x04")
+    # client.write_get("foo")
+    # client.write_getdel("foo")
+    # client.write_append("foo", b"\x00")
+    # client.write_get("foo")
+    # client.write_set("count", b"0")
+    # client.write_incr("count")
+    # client.write_incr("count")
+    # client.write_incr("count")
+    # client.write_decr("count")
+
+    print("Value:", client.read_get())
+    # print("Length:", client.read_strlen())
+    # print("Append:", client.read_append())
+    # print("Value:", client.read_get())
+    # print("Value:", client.read_getdel())
+    # print("Append:", client.read_append())
+    # print("Value:", client.read_get())
+    # client.read_set()
+    # print("Incr:", client.read_incr())
+    # print("Incr:", client.read_incr())
+    # print("Incr:", client.read_incr())
+    # print("Decr:", client.read_decr())
+
+    client.disconnect()

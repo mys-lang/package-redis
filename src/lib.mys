@@ -384,8 +384,7 @@ class Client:
 
         self._write_request(command)
 
-        return _unpack_bulk_string(self._read_reply_check_error(),
-                                   "Not a bulk string reply.")
+        return self._read_bulk_string_reply_check_error()
 
     func call_simple_string_reply(self, command: [bytes]) -> string:
         """Call given command and expect a simple string (+) reply.
@@ -394,8 +393,50 @@ class Client:
 
         self._write_request(command)
 
-        return _unpack_simple_string(self._read_reply_check_error(),
-                                     "Not a simple string reply.")
+        return self._read_simple_string_reply_check_error()
+
+    func write_set(self, key: string, value: bytes):
+        """Write pipelined set given value for given key.
+
+        """
+
+        self._write_request([b"SET", key.to_utf8(), value])
+
+    func read_set(self):
+        """Read pipelined set given value for given key.
+
+        """
+
+        reply = self._read_simple_string_reply_check_error()
+        _check_simple_string_reply(reply, "OK")
+
+    func write_get(self, key: string):
+        """Write pipelined get the value for given key.
+
+        """
+
+        self._write_request([b"GET", key.to_utf8()])
+
+    func read_get(self) -> bytes:
+        """Read pipelined get the value for given key.
+
+        """
+
+        return self._read_bulk_string_reply_check_error()
+
+    func write_del(self, key: string):
+        """Write pipelined delete given key.
+
+        """
+
+        self._write_request([b"DEL", key.to_utf8()])
+
+    func read_del(self) -> i64:
+        """Read pipelined delete given key.
+
+        """
+
+        return self._read_integer_reply_check_error()
 
     func _write_request(self, command: [bytes]):
         request = f"*{len(command)}\r\n".to_utf8()
@@ -445,6 +486,18 @@ class Client:
                 raise RedisError(f"{error_reply.error}: {error_reply.message}")
 
         return reply
+
+    func _read_bulk_string_reply_check_error(self) -> bytes:
+        return _unpack_bulk_string(self._read_reply_check_error(),
+                                   "Not a bulk string reply.")
+
+    func _read_simple_string_reply_check_error(self) -> string:
+        return _unpack_simple_string(self._read_reply_check_error(),
+                                     "Not a simple string reply.")
+
+    func _read_integer_reply_check_error(self) -> i64:
+        return _unpack_integer(self._read_reply_check_error(),
+                               "Not an integer reply.")
 
     func _call_simple_string_reply_ok(self, command: [bytes]):
         reply = self.call_simple_string_reply(command)
@@ -669,4 +722,33 @@ func test_wrong_reply():
 
     assert message == "Not a simple string reply."
 
+    client.disconnect()
+
+@test
+func test_string_pipeline():
+    client = Client()
+    client.connect()
+    client.del("foo")
+
+    client.write_set("foo", b"")
+    client.write_del("foo")
+    client.write_set("foo", b"\x00\x01\x02")
+    client.write_get("foo")
+
+    client.read_set()
+    assert client.read_del() == 1
+    client.read_set()
+    assert client.read_get() == b"\x00\x01\x02"
+
+    # assert client.strlen("foo") == 3
+    # assert client.append("foo", b"\x03\x04") == 5
+    # assert client.get("foo") == b"\x00\x01\x02\x03\x04"
+    # assert client.getdel("foo") == b"\x00\x01\x02\x03\x04"
+    # assert client.append("foo", b"\x00") == 1
+    # assert client.get("foo") == b"\x00"
+    # client.set("count", b"0")
+    # assert client.incr("count") == 1
+    # assert client.incr("count") == 2
+    # assert client.incr("count") == 3
+    # assert client.decr("count") == 2
     client.disconnect()
