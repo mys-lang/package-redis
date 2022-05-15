@@ -26,6 +26,15 @@ String
        print(client.get("my_key"))
        client.disconnect()
 
+Build and run:
+
+.. code-block:: myscon
+
+   ❯ mys run
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
+   b"my_value"
+
 List
 ----
 
@@ -41,6 +50,16 @@ List
        print(client.lpop("bar"))
        print(client.rpop("bar"))
        client.disconnect()
+
+Build and run:
+
+.. code-block:: myscon
+
+   ❯ mys run
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
+   b"1"
+   b"2"
 
 Hash
 ----
@@ -60,6 +79,17 @@ Hash
        print(client.hgetall("fie"))
        client.disconnect()
 
+Build and run:
+
+.. code-block:: myscon
+
+   ❯ mys run
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
+   b"x"
+   {"b": b"y", "c": b"z", "a": b"x"}
+   {"b": b"y", "c": b"z"}
+
 Publish
 -------
 
@@ -72,6 +102,14 @@ Publish
        client.connect()
        client.publish("my_channel", b"my_payload")
        client.disconnect()
+
+Build and run:
+
+.. code-block:: myscon
+
+   ❯ mys run
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
 
 Subscribe
 ---------
@@ -90,12 +128,22 @@ Subscribe
 
        while True:
            match client.get_message():
-                case PublishMessage() as publish_message:
-                    print(publish_message)
-                case SubscribeMessage() as subscribe_message:
-                    print(subscribe_message)
-                case UnsubscribeMessage() as unsubscribe_message:
-                    print(unsubscribe_message)
+               case PublishMessage() as publish_message:
+                   print(publish_message)
+               case SubscribeMessage() as subscribe_message:
+                   print(subscribe_message)
+               case UnsubscribeMessage() as unsubscribe_message:
+                   print(unsubscribe_message)
+
+Build and run, and publish ``hi`` on ``my_channel`` in another terminal:
+
+.. code-block:: myscon
+
+   ❯ mys run
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
+   SubscribeMessage(channel="my_channel", number_of_subscriptions=1)
+   PublishMessage(channel="my_channel", payload=b"hi")
 
 Pipeline
 --------
@@ -109,11 +157,20 @@ Multiple commands in flight simultaniously.
    func main():
        client = Client()
        client.connect()
-       client.set_write("foo", b"\x00\x01\x02")
+       client.set_write("foo", b"bar")
        client.get_write("foo")
        client.set_read()
-       print("Value:", client.get_read())
+       print(client.get_read())
        client.disconnect()
+
+Build and run:
+
+.. code-block:: myscon
+
+   ❯ mys run
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
+   b"bar"
 
 API
 ===
