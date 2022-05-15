@@ -368,9 +368,9 @@ class Client:
 
         """
 
-        self._write_request(command)
+        self.call_write(command)
 
-        return self._read_reply()
+        return self.call_read()
 
     func call_integer_reply(self, command: [bytes]) -> i64:
         """Call given command and expect an integer (:) reply.
@@ -399,6 +399,20 @@ class Client:
         self._write_request(command)
 
         return self._read_simple_string_reply_check_error()
+
+    func del_write(self, key: string):
+        """Write pipelined delete given key.
+
+        """
+
+        self._write_request([b"DEL", key.to_utf8()])
+
+    func del_read(self) -> i64:
+        """Read pipelined delete given key.
+
+        """
+
+        return self._read_integer_reply_check_error()
 
     func set_write(self, key: string, value: bytes):
         """Write pipelined set given value for given key.
@@ -429,19 +443,19 @@ class Client:
 
         return self._read_bulk_string_reply_check_error()
 
-    func del_write(self, key: string):
-        """Write pipelined delete given key.
+    func call_write(self, command: [bytes]):
+        """Write pipelined call given command.
 
         """
 
-        self._write_request([b"DEL", key.to_utf8()])
+        self._write_request(command)
 
-    func del_read(self) -> i64:
-        """Read pipelined delete given key.
+    func call_read(self) -> Reply:
+        """Read pipelined call given command.
 
         """
 
-        return self._read_integer_reply_check_error()
+        return self._read_reply()
 
     func _write_request(self, command: [bytes]):
         request = f"*{len(command)}\r\n".to_utf8()
