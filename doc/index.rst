@@ -97,6 +97,24 @@ Subscribe
                 case UnsubscribeMessage() as unsubscribe_message:
                     print(unsubscribe_message)
 
+Pipeline
+--------
+
+Multiple commands in flight simultaniously.
+
+.. code-block:: mys
+
+   from redis import Client
+
+   func main():
+       client = Client()
+       client.connect()
+       client.set_write("foo", b"\x00\x01\x02")
+       client.get_write("foo")
+       client.set_read()
+       print("Value:", client.get_read())
+       client.disconnect()
+
 API
 ===
 
