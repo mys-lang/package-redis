@@ -18,13 +18,18 @@ func _print_reply(reply: Reply, indent: string = ""):
         case SimpleStringReply() as simple_string_reply:
             _print(simple_string_reply.value, indent)
         case BulkStringReply() as bulk_string_reply:
-            _print(string(bulk_string_reply.value), indent)
+            if bulk_string_reply.value is None:
+                _print("nil", indent)
+            else:
+                _print(str(bulk_string_reply.value), indent)
         case IntegerReply() as integer_reply:
             _print(str(integer_reply.value), indent)
         case ArrayReply() as array_reply:
             _print("(array)", indent)
 
-            if array_reply.items is not None:
+            if array_reply.items is None:
+                _print("nil", indent)
+            else:
                 for item in array_reply.items:
                     _print_reply(item, indent + "    ")
 
