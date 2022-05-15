@@ -87,8 +87,8 @@ Build and run:
     ✔ Reading package configuration (0 seconds)
     ✔ Building (0.01 seconds)
    b"x"
-   {"b": b"y", "c": b"z", "a": b"x"}
-   {"b": b"y", "c": b"z"}
+   {"b": b"y", "a": b"x"}
+   {"b": b"y"}
 
 Publish
 -------
