@@ -12,6 +12,8 @@ Project: https://github.com/mys-lang/package-redis
 Examples
 ========
 
+More examples can be found in the `repository's examples directory`_.
+
 String
 ------
 
@@ -189,3 +191,5 @@ API
 .. _stars: https://github.com/mys-lang/package-redis
 
 .. _Mys programming language: https://mys-lang.org
+
+.. _repository's examples directory: https://github.com/mys-lang/package-redis/blob/main/examples
