@@ -219,6 +219,27 @@ class Client:
 
         return self.call_integer_reply([b"STRLEN", key.to_utf8()])
 
+    func scan(self, cursor: i64, pattern: string) -> (i64, [string]):
+        """Scan for matching keys.
+
+        """
+
+        reply = self.call(
+            [b"SCAN", str(cursor).to_utf8(), b"MATCH", pattern.to_utf8()])
+        reply_items = _unpack_array(reply, "Bad SCAN reply.")
+
+        if len(reply_items) != 2:
+            raise RedisError("Bad SCAN reply length.")
+
+        keys = []
+        cursor = i64(string(_unpack_bulk_string(reply_items[0],
+                                                "Bad SCAN cursor.")))
+
+        for item in _unpack_array(reply_items[1], "Bad SCAN keys."):
+            keys.append(string(_unpack_bulk_string(item, "Bad SCAN key.")))
+
+        return cursor, keys
+
     func lpush(self, key: string, value: bytes) -> i64:
         """Prepend given value for given list key.
 
