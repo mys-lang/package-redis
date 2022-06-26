@@ -132,15 +132,15 @@ class Client:
 
     func __init__(self):
         self._client = TcpClient()
-        self._buffered_reader = None
+        self._buffered_reader = BufferedReader(self._client)
 
     func connect(self, host: string = "127.0.0.1", port: u32 = 6379):
         """Connect to given server.
 
         """
 
+        self._buffered_reader.clear()
         self._client.connect(host, port)
-        self._buffered_reader = BufferedReader(self._client)
 
     func disconnect(self):
         """Disconnect from the server.
@@ -792,3 +792,12 @@ func test_string_pipeline():
     # assert client.incr("count") == 3
     # assert client.decr("count") == 2
     client.disconnect()
+
+@test
+func test_connect_disconnect():
+    client = Client()
+    client.connect()
+    client.disconnect()
+    client.disconnect()
+    client.connect()
+    client.connect()
