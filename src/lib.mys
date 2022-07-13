@@ -4,8 +4,7 @@ from net.tcp.client import Client as TcpClient
 class RedisError(Error):
     message: string
 
-@trait
-class Message:
+trait Message:
     """A received Pub/Sub message.
 
     """
@@ -34,8 +33,7 @@ class PublishMessage(Message):
     channel: string
     payload: bytes
 
-@trait
-class Reply:
+trait Reply:
     """A command reply.
 
     """
