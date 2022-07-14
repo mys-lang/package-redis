@@ -549,8 +549,7 @@ class Client:
 
         return line
 
-@test
-func test_string():
+test string():
     client = Client()
     client.connect()
     client.del("foo")
@@ -571,8 +570,7 @@ func test_string():
     assert client.decr("count") == 2
     client.disconnect()
 
-@test
-func test_call():
+test call():
     client = Client()
     client.connect()
 
@@ -602,8 +600,7 @@ func test_call():
 
     client.disconnect()
 
-@test
-func test_list():
+test list():
     client = Client()
     client.connect()
 
@@ -619,8 +616,7 @@ func test_list():
 
     client.disconnect()
 
-@test
-func test_hash():
+test hash():
     client = Client()
     client.connect()
 
@@ -651,8 +647,7 @@ func test_hash():
 
     client.disconnect()
 
-@test
-func test_auth():
+test auth():
     client = Client()
     client.connect()
 
@@ -666,8 +661,7 @@ func test_auth():
 
     client.disconnect()
 
-@test
-func test_pub_sub():
+test pub_sub():
     subscriber = Client()
     publisher = Client()
 
@@ -731,8 +725,7 @@ func test_pub_sub():
     subscriber.disconnect()
     publisher.disconnect()
 
-@test
-func test_wrong_reply():
+test wrong_reply():
     client = Client()
     client.connect()
 
@@ -762,8 +755,7 @@ func test_wrong_reply():
 
     client.disconnect()
 
-@test
-func test_string_pipeline():
+test string_pipeline():
     client = Client()
     client.connect()
     client.del("foo")
@@ -791,8 +783,7 @@ func test_string_pipeline():
     # assert client.decr("count") == 2
     client.disconnect()
 
-@test
-func test_connect_disconnect():
+test connect_disconnect():
     client = Client()
     client.connect()
     client.disconnect()
