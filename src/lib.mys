@@ -226,7 +226,7 @@ class Client:
             [b"SCAN", str(cursor).to_utf8(), b"MATCH", pattern.to_utf8()])
         reply_items = _unpack_array(reply, "Bad SCAN reply.")
 
-        if len(reply_items) != 2:
+        if reply_items.length() != 2:
             raise RedisError("Bad SCAN reply length.")
 
         keys = []
@@ -289,7 +289,7 @@ class Client:
         reply_items = _unpack_array(reply, "Bad hash type.")
         items: {string: bytes} = {}
 
-        for i in range(0, i64(len(reply_items)), 2):
+        for i in range(0, reply_items.length(), 2):
             field = string(_unpack_bulk_string(reply_items[i + 0],
                                                "Bad hash field type."))
             value = _unpack_bulk_string(reply_items[i + 1],
@@ -360,14 +360,14 @@ class Client:
 
         items = _unpack_array(self._read_reply(), "Not a reply.")
 
-        if len(items) < 3:
+        if items.length() < 3:
             raise RedisError("Message too short.")
 
         match _unpack_bulk_string(items[0], "No message kind."):
             case b"message":
                 return _unpack_publish(items[1], items[2])
             case b"pmessage":
-                if len(items) < 4:
+                if items.length() < 4:
                     raise RedisError("Message too short.")
 
                 return _unpack_publish(items[2], items[3])
@@ -477,10 +477,10 @@ class Client:
         return self._read_reply()
 
     func _write_request(self, command: [bytes]):
-        request = f"*{len(command)}\r\n".to_utf8()
+        request = f"*{command.length()}\r\n".to_utf8()
 
         for item in command:
-            request += f"${len(item)}\r\n".to_utf8()
+            request += f"${item.length()}\r\n".to_utf8()
             request += item
             request += b"\r\n"
 
@@ -633,7 +633,7 @@ test hash():
     assert client.hget("fie", "c") == b"z"
 
     items = client.hgetall("fie")
-    assert len(items) == 3
+    assert items.length() == 3
     assert items["a"] == b"x"
     assert items["b"] == b"y"
     assert items["c"] == b"z"
