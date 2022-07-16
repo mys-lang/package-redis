@@ -132,7 +132,7 @@ class Client:
         self._client = TcpClient()
         self._buffered_reader = BufferedReader(self._client)
 
-    func connect(self, host: string = "127.0.0.1", port: u32 = 6379):
+    func connect(self, host: string = "127.0.0.1", port: i64 = 6379):
         """Connect to given server.
 
         """

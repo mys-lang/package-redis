@@ -47,7 +47,7 @@ func main(argv: [string]):
     args = parser.parse(argv)
 
     client = Client()
-    client.connect(args.value_of("--host"), u32(args.value_of("--port")))
+    client.connect(args.value_of("--host"), i64(args.value_of("--port")))
 
     command = [arg.to_utf8() for arg in args.values_of("command")]
     _print_reply(client.call(command))
