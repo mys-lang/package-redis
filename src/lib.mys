@@ -74,14 +74,14 @@ class ArrayReply(Reply):
 
     items: [Reply]
 
-func _unpack_bulk_string(value: Reply, message: string) -> bytes:
+func _unpack_bulk_string(value: Reply, message: string) -> bytes?:
     match value:
         case BulkStringReply() as bulk_string_reply:
             return bulk_string_reply.value
         case _:
             raise RedisError(message)
 
-func _unpack_array(value: Reply, message: string) -> [Reply]:
+func _unpack_array(value: Reply, message: string) -> [Reply]?:
     match value:
         case ArrayReply() as array_reply:
             return array_reply.items
@@ -171,7 +171,7 @@ class Client:
         self.set_write(key, value)
         self.set_read()
 
-    func get(self, key: string) -> bytes:
+    func get(self, key: string) -> bytes?:
         """Get the value for given key.
 
         """
@@ -180,7 +180,7 @@ class Client:
 
         return self.get_read()
 
-    func getdel(self, key: string) -> bytes:
+    func getdel(self, key: string) -> bytes?:
         """Get the value for given key and then delete it.
 
         """
@@ -245,7 +245,7 @@ class Client:
 
         return self.call_integer_reply([b"LPUSH", key.to_utf8(), value])
 
-    func lpop(self, key: string) -> bytes:
+    func lpop(self, key: string) -> bytes?:
         """Pop the first value for given list key.
 
         """
@@ -259,7 +259,7 @@ class Client:
 
         return self.call_integer_reply([b"RPUSH", key.to_utf8(), value])
 
-    func rpop(self, key: string) -> bytes:
+    func rpop(self, key: string) -> bytes?:
         """Pop the last value for given list key.
 
         """
@@ -273,7 +273,7 @@ class Client:
 
         return self.call_integer_reply([b"HSET", key.to_utf8(), field.to_utf8(), value])
 
-    func hget(self, key: string, field: string) -> bytes:
+    func hget(self, key: string, field: string) -> bytes?:
         """Get the value for given field for given hash key.
 
         """
@@ -401,7 +401,7 @@ class Client:
         return _unpack_integer(self._read_reply_check_error(),
                                "Not an integer reply.")
 
-    func call_bulk_string_reply(self, command: [bytes]) -> bytes:
+    func call_bulk_string_reply(self, command: [bytes]) -> bytes?:
         """Call given command and expect a bulk string ($) reply.
 
         """
@@ -455,7 +455,7 @@ class Client:
 
         self._write_request([b"GET", key.to_utf8()])
 
-    func get_read(self) -> bytes:
+    func get_read(self) -> bytes?:
         """Read pipelined get the value for given key.
 
         """
@@ -525,7 +525,7 @@ class Client:
 
         return reply
 
-    func _read_bulk_string_reply_check_error(self) -> bytes:
+    func _read_bulk_string_reply_check_error(self) -> bytes?:
         return _unpack_bulk_string(self._read_reply_check_error(),
                                    "Not a bulk string reply.")
 
@@ -553,6 +553,7 @@ test string():
     client = Client()
     client.connect()
     client.del("foo")
+    assert client.get("foo") is None
     client.set("foo", b"")
     assert client.del("foo") == 1
     client.set("foo", b"\x00\x01\x02")
@@ -561,6 +562,7 @@ test string():
     assert client.append("foo", b"\x03\x04") == 5
     assert client.get("foo") == b"\x00\x01\x02\x03\x04"
     assert client.getdel("foo") == b"\x00\x01\x02\x03\x04"
+    assert client.getdel("foo") is None
     assert client.append("foo", b"\x00") == 1
     assert client.get("foo") == b"\x00"
     client.set("count", b"0")
@@ -613,6 +615,9 @@ test list():
     assert client.lpop("bar") == b"1"
     assert client.lpop("bar") == b"2"
     assert client.rpop("bar") == b"3"
+
+    assert client.lpop("bar") is None
+    assert client.rpop("bar") is None
 
     client.disconnect()
 
