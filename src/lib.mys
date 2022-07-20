@@ -65,14 +65,14 @@ class BulkStringReply(Reply):
 
     """
 
-    value: bytes
+    value: bytes?
 
 class ArrayReply(Reply):
     """An array command reply.
 
     """
 
-    items: [Reply]
+    items: [Reply]?
 
 func _unpack_bulk_string(value: Reply, message: string) -> bytes?:
     match value:
