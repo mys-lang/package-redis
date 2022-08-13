@@ -229,7 +229,7 @@ class Client:
         if reply_items.length() != 2:
             raise RedisError("Bad SCAN reply length.")
 
-        keys = []
+        keys: [string] = []
         cursor = i64(string(_unpack_bulk_string(reply_items[0],
                                                 "Bad SCAN cursor.")))
 
